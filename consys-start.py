@@ -8,6 +8,7 @@ def choose_by_name(name):
     for a in valid_actions:
         if name[-len(a):] == a:
             return a
+    return None
 
 if __name__ == '__main__':
     action = choose_by_name(sys.argv[0])
@@ -19,7 +20,7 @@ if __name__ == '__main__':
             action = sys.argv[1]
     
     try:
-        a = __import__(action)
+        a = __import__('consys.' + action, fromlist=['run'])
         a.run()
     except ImportError as e:
         print('Sorry, "{}" is not available on this system'.format(action), file=sys.stderr)
