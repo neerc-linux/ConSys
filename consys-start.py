@@ -18,6 +18,7 @@ if __name__ == '__main__':
             sys.exit(-1)
         else:
             action = sys.argv[1]
+            sys.argv = sys.argv[0:1] + sys.argv[2:]
     
     try:
         a = __import__('consys.' + action, fromlist=['run'])
