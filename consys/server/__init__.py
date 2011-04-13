@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import os
 import signal
 import logging
 import logging.handlers
@@ -7,15 +8,17 @@ import logging.handlers
 import daemon
 import lockfile
 
+from consys.server.network import SshServer
+
 def run():
     # Setting up logging
     root_log = logging.getLogger()
-    root_log.setLevel(logging.INFO)
+    root_log.setLevel(logging.DEBUG)
     
     file_formatter = logging.Formatter(fmt='%(asctime)s [%(name)s] -- %(message)s')
     log_file = logging.handlers.RotatingFileHandler('server.log',
-                    maxBytes=1024, backupCount=3)
-    log_file.setLevel(logging.INFO)
+                    maxBytes=1024*64, backupCount=3)
+    log_file.setLevel(logging.DEBUG)
     log_file.setFormatter(file_formatter)
     root_log.addHandler(log_file)
     
@@ -28,6 +31,8 @@ def run():
     root_log.info('Logging started')
     log = logging.getLogger(__name__)
     
+    cd = os.getcwd()
+
     context = daemon.DaemonContext(
         #pidfile=lockfile.FileLock(u'consys-server.run'),
         signal_map = {
@@ -37,6 +42,19 @@ def run():
     )
     
     log.debug('Entering daemon context...')
+    #if True:
     with context:
-        log.info('Initializing ConSys server daemon...')
-        log.info('Terminating ConSys server daemon...')
+        try:
+            log.info('Initializing ConSys server daemon...')
+            config = {"bind-address": "0.0.0.0",
+                      "listen-port": 2222,
+                      "server-key": os.path.join(cd, "keys/server"),
+                      "client-public-key": os.path.join(cd, "keys/client.pub"),
+                      "client-user-name": "test"
+                      }
+            server = SshServer(config)
+            server.serve_forever()
+            log.info('Terminating ConSys server daemon...')
+        except Exception:
+            log.exception("Unhandled exception in main thread, exiting")
+            

@@ -7,6 +7,7 @@ Server-side network routines.
 from __future__ import unicode_literals 
 
 import logging
+import socket
 import SocketServer
 import threading
 import paramiko
@@ -15,6 +16,8 @@ from consys.common.network import load_public_key, CHANNEL_NAME, \
     CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
 
 __all__ = ['SshServer']
+
+log = logging.getLogger(__name__)
 
 class ControlSubsystemHandler(paramiko.SubsystemHandler):
     '''
@@ -27,7 +30,7 @@ class ControlSubsystemHandler(paramiko.SubsystemHandler):
         '''
         Request handling logic.
         '''
-        logging.debug("Incoming S2C control channel!")
+        log.debug("Incoming S2C control channel!")
         self.connection.set_control_channel(channel)
 
 class RpcSubsystemHandler(paramiko.SubsystemHandler):
@@ -38,7 +41,7 @@ class RpcSubsystemHandler(paramiko.SubsystemHandler):
         '''
         Request handling logic.
         '''
-        logging.debug("Incoming C2S RPC channel!")
+        log.debug("Incoming C2S RPC channel!")
         
 class RpcReverseSubsystemHandler(paramiko.SubsystemHandler):
     '''
@@ -48,7 +51,7 @@ class RpcReverseSubsystemHandler(paramiko.SubsystemHandler):
         '''
         Request handling logic.
         '''
-        logging.debug("Incoming S2C RPC back-channel!")
+        log.debug("Incoming S2C RPC back-channel!")
 
 class SshConnection(object):
     '''
@@ -59,7 +62,8 @@ class SshConnection(object):
         '''
         Creates a SSH server-side endpoint.
         '''
-        self.transport = paramiko.Transport()
+        self.server = server
+        self.transport = paramiko.Transport(socket)
         self.transport.add_server_key(server.server_pkey)
         self.transport.start_server(server=ServerImpl(self))
         self.transport.set_subsystem_handler(CONTROL_SYBSYSTEM, 
@@ -74,6 +78,15 @@ class SshConnection(object):
         '''
         if self.control_channel is None:
             self.control_channel = channel
+            
+    def close(self):
+        '''
+        Closes the connection.
+        '''
+        # FIXME: clean up gracefully
+        log.info("Closing SSH connection")
+        self.transport.close()
+        self.server.connections.remove(self)
 
 class ServerImpl(paramiko.ServerInterface):
     '''
@@ -109,20 +122,32 @@ class SshServer(SocketServer.TCPServer):
         A simple incoming connection handler.
         '''        
         def handle(self):
-            # self.request is the TCP socket
-            # self.server is the TCPServer instance
-            connection = SshConnection(self.request, self.server)
-            self.server.connecions.add(connection)
+            log.debug("Incoming TCP connection "
+                      "from {}".format(self.client_address))
+            connection = None
+            try:
+                # self.request is the TCP socket
+                # self.server is the TCPServer instance
+                connection = SshConnection(self.request, self.server)
+                self.server.connections.append(connection)
+            except socket.error:
+                log.debug("Socket error, closing connection")
+                if connection is not None:
+                    connection.close();
+            except Exception:
+                log.exception('Unhandled exception in the TCP connection '
+                              'handler')
+                raise
     
     def __init__(self, config):
         '''
         Constructs a new server with specified configuration.
         '''
-        SocketServer.TCPServer.__init__((config[b"bind-address"],
-                                              config[b"listen-port"]), 
-                                             SshServer.TCPHandler)
+        SocketServer.TCPServer.__init__(self, (config[b"bind-address"],
+                                               config[b"listen-port"]),
+                                        SshServer.TCPHandler)
         self.server_pkey = \
-            paramiko.SSHKey.from_private_key_file(config[b"server-key"])
+            paramiko.RSAKey.from_private_key_file(config[b"server-key"])
         self.client_key = load_public_key(config[b"client-public-key"])
         self.username = config[b"client-user-name"]
         self.connections = []
