@@ -38,7 +38,7 @@ class SSHClient(object):
         self.transport = paramiko.Transport((config[b"server-address"],
                                              config[b"server-port"]))
         self.client_pkey = \
-            paramiko.SSHKey.from_private_key_file(config[b"client-key"])
+            paramiko.RSAKey.from_private_key_file(config[b"client-key"])
         self.server_key = load_public_key(config[b"server-public-key"])
         self.username = config[b"login-user-name"]
         self.transport.connect(self.server_key, self.username,

@@ -8,8 +8,6 @@ import logging.handlers
 import daemon
 import lockfile
 
-from consys.server.network import SSHServer
-
 def run():
     # Set up logging
     root_log = logging.getLogger()
@@ -46,6 +44,7 @@ def run():
     with context:
         try:
             log.info('Initializing ConSys server daemon...')
+            from consys.server.network import SSHServer
             config = {"bind-address": "0.0.0.0",
                       "listen-port": 2222,
                       "server-key": os.path.join(cd, "keys/server"),
