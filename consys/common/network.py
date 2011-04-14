@@ -27,5 +27,5 @@ def load_public_key(filename):
         line = f.readline()
     fields = line.split(' ')
     if len(fields) != 3 or fields[0] != b"ssh-rsa":
-        raise NetworkError("Cannot read public key file '{}'".format(filename))
+        raise NetworkError("Cannot read public key file '{0}'".format(filename))
     return paramiko.RSAKey(data=base64.decodestring(fields[1])) 

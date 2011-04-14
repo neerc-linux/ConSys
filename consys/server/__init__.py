@@ -8,10 +8,10 @@ import logging.handlers
 import daemon
 import lockfile
 
-from consys.server.network import SshServer
+from consys.server.network import SSHServer
 
 def run():
-    # Setting up logging
+    # Set up logging
     root_log = logging.getLogger()
     root_log.setLevel(logging.DEBUG)
     
@@ -37,9 +37,9 @@ def run():
         #pidfile=lockfile.FileLock(u'consys-server.run'),
         signal_map = {
             signal.SIGUSR1: u'terminate',
-        },
+            },
         files_preserve = [log_file.stream],
-    )
+        )
     
     log.debug('Entering daemon context...')
     #if True:
@@ -52,7 +52,7 @@ def run():
                       "client-public-key": os.path.join(cd, "keys/client.pub"),
                       "client-user-name": "test"
                       }
-            server = SshServer(config)
+            server = SSHServer(config)
             server.serve_forever()
             log.info('Terminating ConSys server daemon...')
         except Exception:

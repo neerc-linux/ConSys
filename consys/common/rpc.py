@@ -7,15 +7,15 @@ RPC common routines.
 from __future__ import unicode_literals 
 
 
-class RpcException(Exception):
+class RPCException(Exception):
     '''
-    A RPC call failure.
+    An RPC call failure.
     '''
     pass
 
-class RpcEndpoint(object):
+class RPCEndpoint(object):
     '''
-    A RPC end-point - either client or server. Allows service registering and
+    An RPC end-point -- either client or server. Allows service registering and
     generic method calling. 
     '''
 
@@ -35,17 +35,17 @@ class RpcEndpoint(object):
     def call_method(self, serviceName, methodName, args, kwargs):
         '''
         Calls the specified service method, returning its result. If
-        there is no such service or method, RpcException is thrown.  
+        there is no such service or method, RPCException is thrown.  
         '''
         try:
             service = self.services[serviceName]
         except KeyError:
-            raise RpcException("RPC service '{0}' is not "
+            raise RPCException("RPC service '{0}' is not "
                                "found".format(serviceName))
         try:
             method = getattr(service, methodName)
         except AttributeError:
-            raise RpcException("RPC method '{0}' on service '{1}' is "
+            raise RPCException("RPC method '{0}' on service '{1}' is "
                                "not found".format(methodName, serviceName))
         return method(*args, **kwargs)
         

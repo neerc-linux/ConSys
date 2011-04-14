@@ -27,10 +27,10 @@ class ControlChannelListener(threading.Thread):
     def run(self):
         while True:
             line = self.socket.readline()
-            log.debug("Got control message: '{}'".format(line))
+            log.debug("Got control message: '{0}'".format(line))
 
 
-class SshClient(object):
+class SSHClient(object):
     '''
     A SSH protocol client.
     '''

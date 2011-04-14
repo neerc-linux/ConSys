@@ -15,7 +15,7 @@ import paramiko
 from consys.common.network import load_public_key, CHANNEL_NAME, \
     CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
 
-__all__ = ['SshServer']
+__all__ = ['SSHServer']
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class ControlSubsystemHandler(paramiko.SubsystemHandler):
         log.debug("Incoming S2C control channel!")
         self.connection.set_control_channel(channel)
 
-class RpcSubsystemHandler(paramiko.SubsystemHandler):
+class RPCSubsystemHandler(paramiko.SubsystemHandler):
     '''
     Client-to-server RPC subsystem handler.
     '''
@@ -43,7 +43,7 @@ class RpcSubsystemHandler(paramiko.SubsystemHandler):
         '''
         log.debug("Incoming C2S RPC channel!")
         
-class RpcReverseSubsystemHandler(paramiko.SubsystemHandler):
+class RPCReverseSubsystemHandler(paramiko.SubsystemHandler):
     '''
     Server-to-client RPC subsystem handler.
     '''
@@ -53,7 +53,7 @@ class RpcReverseSubsystemHandler(paramiko.SubsystemHandler):
         '''
         log.debug("Incoming S2C RPC back-channel!")
 
-class SshConnection(object):
+class SSHConnection(object):
     '''
     A server side of the SSH connection.
     '''
@@ -69,7 +69,7 @@ class SshConnection(object):
         self.transport.set_subsystem_handler(CONTROL_SYBSYSTEM, 
                                              ControlSubsystemHandler, self)
         self.transport.set_subsystem_handler(RPC_C2S_SYBSYSTEM, 
-                                             RpcSubsystemHandler)
+                                             RPCSubsystemHandler)
         self.control_channel = None
         
     def set_control_channel(self, channel):
@@ -112,7 +112,7 @@ class ServerImpl(paramiko.ServerInterface):
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
     
-class SshServer(SocketServer.TCPServer):
+class SSHServer(SocketServer.TCPServer):
     '''
     A SSH protocol server.
     '''
@@ -123,12 +123,12 @@ class SshServer(SocketServer.TCPServer):
         '''        
         def handle(self):
             log.debug("Incoming TCP connection "
-                      "from {}".format(self.client_address))
+                      "from {0}".format(self.client_address))
             connection = None
             try:
                 # self.request is the TCP socket
                 # self.server is the TCPServer instance
-                connection = SshConnection(self.request, self.server)
+                connection = SSHConnection(self.request, self.server)
                 self.server.connections.append(connection)
             except socket.error:
                 log.debug("Socket error, closing connection")
@@ -145,7 +145,7 @@ class SshServer(SocketServer.TCPServer):
         '''
         SocketServer.TCPServer.__init__(self, (config[b"bind-address"],
                                                config[b"listen-port"]),
-                                        SshServer.TCPHandler)
+                                        SSHServer.TCPHandler)
         self.server_pkey = \
             paramiko.RSAKey.from_private_key_file(config[b"server-key"])
         self.client_key = load_public_key(config[b"client-public-key"])
