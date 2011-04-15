@@ -6,7 +6,7 @@ Client-side network routines.
 from __future__ import unicode_literals 
 
 import logging
-import SocketServer
+import time
 import threading
 import paramiko
 
@@ -20,6 +20,8 @@ class ControlChannelListener(threading.Thread):
     A thread for listening on the control channel and opening reverse channels.
     '''
     def __init__(self, client, channel):
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
         self.client = client
         self.channel = channel
         self.socket = channel.makefile()
@@ -28,6 +30,7 @@ class ControlChannelListener(threading.Thread):
         while True:
             line = self.socket.readline()
             log.debug("Got control message: '{0}'".format(line))
+            time.sleep(5)
 
 
 class SSHClient(object):
@@ -49,6 +52,7 @@ class SSHClient(object):
         self.control_listener = ControlChannelListener(self,
                                                        self.control_channel)
         self.control_listener.start()
+        time.sleep(10)
         
     def interact(self, subsytem, data):
         '''

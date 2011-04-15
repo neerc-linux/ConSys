@@ -51,8 +51,8 @@ def run():
                       "server-public-key": os.path.join(cd, "keys/server.pub"),
                       "login-user-name": "test"
                       }
-            server = SSHClient(config)
-            server.serve_forever()
+            client = SSHClient(config)
+            #server.serve_forever()
             log.info('Terminating ConSys client daemon...')
         except Exception:
             log.exception("Unhandled exception in main thread, exiting")

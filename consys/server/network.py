@@ -1,5 +1,4 @@
-'''
-Server-side network routines.
+'''Server-side network routines.
 
 @author: Nikita Ofitserov
 '''
@@ -8,7 +7,7 @@ from __future__ import unicode_literals
 
 import logging
 import socket
-import SocketServer
+import asyncore
 import threading
 import paramiko
 
@@ -20,48 +19,38 @@ __all__ = ['SSHServer']
 log = logging.getLogger(__name__)
 
 class ControlSubsystemHandler(paramiko.SubsystemHandler):
-    '''
-    Server-to-client control subsystem handler.
-    '''
-    def __init__(self, connection):
+    '''Server-to-client control subsystem handler.'''
+    
+    def __init__(self, channel, name, server, connection):
+        paramiko.SubsystemHandler.__init__(self, channel, name, server)
         self.connection = connection
     
     def start_subsystem(self, name, transport, channel):
-        '''
-        Request handling logic.
-        '''
+        '''Request handling logic.'''
         log.debug("Incoming S2C control channel!")
         self.connection.set_control_channel(channel)
+        import pdb; pdb.set_trace()
+        channel.sendall(b'WTF?')
 
 class RPCSubsystemHandler(paramiko.SubsystemHandler):
-    '''
-    Client-to-server RPC subsystem handler.
-    '''
+    '''Client-to-server RPC subsystem handler.'''
+    
     def start_subsystem(self, name, transport, channel):
-        '''
-        Request handling logic.
-        '''
+        '''Request handling logic.'''
         log.debug("Incoming C2S RPC channel!")
         
 class RPCReverseSubsystemHandler(paramiko.SubsystemHandler):
-    '''
-    Server-to-client RPC subsystem handler.
-    '''
+    '''Server-to-client RPC subsystem handler.'''
+    
     def start_subsystem(self, name, transport, channel):
-        '''
-        Request handling logic.
-        '''
+        '''Request handling logic.'''
         log.debug("Incoming S2C RPC back-channel!")
 
 class SSHConnection(object):
-    '''
-    A server side of the SSH connection.
-    '''
+    '''A server side of the SSH connection.'''
     
     def __init__(self, socket, server):
-        '''
-        Creates a SSH server-side endpoint.
-        '''
+        '''Creates a SSH server-side endpoint.'''
         self.server = server
         self.transport = paramiko.Transport(socket)
         self.transport.add_server_key(server.server_pkey)
@@ -73,28 +62,26 @@ class SSHConnection(object):
         self.control_channel = None
         
     def set_control_channel(self, channel):
-        '''
-        Sets the control channel, if not already set.
-        '''
+        '''Sets the control channel, if not already set.'''
         if self.control_channel is None:
             self.control_channel = channel
             
     def close(self):
-        '''
-        Closes the connection.
-        '''
+        '''Closes the connection.'''
         # FIXME: clean up gracefully
         log.info("Closing SSH connection")
         self.transport.close()
         self.server.connections.remove(self)
-
+        
+        
 class ServerImpl(paramiko.ServerInterface):
-    '''
-    A concrete ServerInterface implementation.
-    '''
+    '''A concrete ServerInterface implementation.'''
     
     def __init__(self, connection):
         self.connection = connection
+        
+    def handle_disconnect(self):
+        self.connection.close()
         
     def get_allowed_auths(self, username):
         return b"publickey"
@@ -106,49 +93,70 @@ class ServerImpl(paramiko.ServerInterface):
         return paramiko.AUTH_FAILED
     
     def check_channel_request(self, kind, chanid):
-        """ Only allow ConSys session channels """
+        '''Only allow ConSys session channels'''
         if kind == CHANNEL_NAME:
             return paramiko.OPEN_SUCCEEDED
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
-    
-class SSHServer(SocketServer.TCPServer):
-    '''
-    A SSH protocol server.
+class PersistentThreadingMixIn(object):
+    '''A mix-in class for SocketServer, allows to create persistent
+    connections asynchronously.
     '''
 
-    class TCPHandler(SocketServer.BaseRequestHandler):
+    def process_request_thread(self, request, client_address):
+        '''Same as in BaseServer but as a thread.
+
+        In addition, exception handling is done here.
         '''
-        A simple incoming connection handler.
-        '''        
-        def handle(self):
-            log.debug("Incoming TCP connection "
-                      "from {0}".format(self.client_address))
-            connection = None
-            try:
-                # self.request is the TCP socket
-                # self.server is the TCPServer instance
-                connection = SSHConnection(self.request, self.server)
-                self.server.connections.append(connection)
-            except socket.error:
-                log.debug("Socket error, closing connection")
-                if connection is not None:
-                    connection.close();
-            except Exception:
-                log.exception('Unhandled exception in the TCP connection '
-                              'handler')
-                raise
+        try:
+            self.finish_request(request, client_address)
+        except Exception: 
+            self.handle_error(request, client_address)
+            self.shutdown_request(request)
+
+    def process_request(self, request, client_address):
+        '''Start a new thread to process the request.'''
+        t = threading.Thread(target = self.process_request_thread,
+                             args = (request, client_address))
+        t.setDaemon(1)
+        t.start()
     
+    def handle_error(self, request, client_address):
+        '''Handle an error gracefully.'''
+        log.exception('Exception happened during processing of request '
+                      'from "{0}"'.format(client_address))
+
+    
+class SSHServer(asyncore.dispatcher):
+    '''An SSH protocol server.'''
+
+    backlog_size = 5
+
     def __init__(self, config):
-        '''
-        Constructs a new server with specified configuration.
-        '''
-        SocketServer.TCPServer.__init__(self, (config[b"bind-address"],
-                                               config[b"listen-port"]),
-                                        SSHServer.TCPHandler)
+        '''Constructs a new server with specified configuration.'''
+        self.map = {}
+        asyncore.dispatcher.__init__(self, map=self.map)
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.set_reuse_addr()
+        self.bind((config['bind-address'], config['listen-port']))
+        self.listen(self.backlog_size)
         self.server_pkey = \
-            paramiko.RSAKey.from_private_key_file(config[b"server-key"])
-        self.client_key = load_public_key(config[b"client-public-key"])
-        self.username = config[b"client-user-name"]
+            paramiko.RSAKey.from_private_key_file(config['server-key'])
+        self.client_key = load_public_key(config['client-public-key'])
+        self.username = config['client-user-name']
         self.connections = []
         
+    def handle_accept(self):
+        '''Handles new incoming connections.'''
+        client = self.accept()
+        if client is None:
+            return
+        socket, client_address = client
+        log.debug('Incoming TCP connection '
+                  'from {0}'.format(client_address))
+        connection = SSHConnection(socket, self)
+        self.connections.append(connection)
+    
+    def serve_forever(self):
+        '''Serves until this server is closed.'''
+        asyncore.loop(map=self.map)

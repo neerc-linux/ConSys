@@ -40,8 +40,8 @@ def run():
         )
     
     log.debug('Entering daemon context...')
-    #if True:
-    with context:
+    if True:
+    #with context:
         try:
             log.info('Initializing ConSys server daemon...')
             from consys.server.network import SSHServer
