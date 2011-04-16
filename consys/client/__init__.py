@@ -47,5 +47,4 @@ def run():
             #server.serve_forever()
             log.info('Terminating ConSys client daemon...')
         except Exception:
-            log.exception("Unhandled exception in main thread, exiting")
-            
+            log.exception('Unhandled exception in main thread, exiting')

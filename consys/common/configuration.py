@@ -1,5 +1,5 @@
-'''
-Configuration subsystem.
+''' Configuration subsystem.
+
 @author: Kirill Elagin
 '''
 

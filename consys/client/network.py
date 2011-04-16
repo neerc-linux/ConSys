@@ -1,7 +1,7 @@
-"""
-Client-side network routines.
+''' Client-side network routines.
+
 @author: Nikita Ofitserov
-"""
+'''
 
 from __future__ import unicode_literals 
 
@@ -39,7 +39,7 @@ class ControlChannelListener(threading.Thread):
     def run(self):
         while True:
             line = self.socket.readline()
-            log.debug("Got control message: '{0}'".format(line))
+            log.debug('Got control message: \'{0}\''.format(line))
             time.sleep(5)
 
 
