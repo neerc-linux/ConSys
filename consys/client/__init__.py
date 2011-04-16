@@ -29,8 +29,6 @@ def run():
     root_log.info('Logging started')
     log = logging.getLogger(__name__)
     
-    cd = os.getcwd()
-
     context = daemon.DaemonContext(
         #pidfile=lockfile.FileLock(u'consys-client.run'),
         signal_map = {
@@ -45,13 +43,7 @@ def run():
         try:
             log.info('Initializing ConSys client daemon...')
             from consys.client.network import SSHClient
-            config = {"server-address": "127.0.0.1",
-                      "server-port": 2222,
-                      "client-key": os.path.join(cd, "keys/client"),
-                      "server-public-key": os.path.join(cd, "keys/server.pub"),
-                      "login-user-name": "test"
-                      }
-            client = SSHClient(config)
+            client = SSHClient()
             #server.serve_forever()
             log.info('Terminating ConSys client daemon...')
         except Exception:

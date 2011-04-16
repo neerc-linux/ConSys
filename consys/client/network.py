@@ -12,7 +12,15 @@ import paramiko
 
 from consys.common.network import load_public_key, CHANNEL_NAME, \
     CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
+import consys.common.config as conf
 
+config = conf.registerSection('network', {
+                                          'server-address': 'string()',
+                                          'port': 'integer(min=1, max=65535, default=2222)',
+                                          'client-key': 'string(default=/etc/consys/keys/client)',
+                                          'server-public-key': 'string(default=/etc/consys/keys/server.pub)',
+                                          'client-user-name': 'string(default=test)',
+                                          })
 log = logging.getLogger(__name__)
 
 class ControlChannelListener(threading.Thread):
@@ -37,13 +45,13 @@ class SSHClient(object):
     '''
     A SSH protocol client.
     '''
-    def __init__(self, config):
-        self.transport = paramiko.Transport((config[b"server-address"],
-                                             config[b"server-port"]))
+    def __init__(self):
+        self.transport = paramiko.Transport((config['server-address'],
+                                             config['port']))
         self.client_pkey = \
-            paramiko.RSAKey.from_private_key_file(config[b"client-key"])
-        self.server_key = load_public_key(config[b"server-public-key"])
-        self.username = config[b"login-user-name"]
+            paramiko.RSAKey.from_private_key_file(config['client-key'])
+        self.server_key = load_public_key(config['server-public-key'])
+        self.username = config['client-user-name']
         self.transport.connect(self.server_key, self.username,
                                None, self.client_pkey)
         del self.client_pkey

@@ -13,9 +13,17 @@ import paramiko
 
 from consys.common.network import load_public_key, CHANNEL_NAME, \
     CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
+import consys.common.config as conf
 
 __all__ = ['SSHServer']
 
+config = conf.registerSection('network', {
+                                          'bind-address': 'string(default=0.0.0.0)',
+                                          'port': 'integer(min=1, max=65535, default=2222)',
+                                          'server-key': 'string(default=/etc/consys/keys/server)',
+                                          'client-public-key': 'string(default=/etc/consys/keys/client.pub)',
+                                          'client-user-name': 'string(default=test)',
+                                          })
 log = logging.getLogger(__name__)
 
 class ControlSubsystemHandler(paramiko.SubsystemHandler):
@@ -132,14 +140,16 @@ class SSHServer(asyncore.dispatcher):
 
     backlog_size = 5
 
-    def __init__(self, config):
+    def __init__(self):
         '''Constructs a new server with specified configuration.'''
         self.map = {}
         asyncore.dispatcher.__init__(self, map=self.map)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
-        self.bind((config['bind-address'], config['listen-port']))
+        self.bind((config['bind-address'], config['port']))
         self.listen(self.backlog_size)
+        log.debug('Server is listening on {0}:{1}'.format(config['bind-address'],
+                                                          config['port']))
         self.server_pkey = \
             paramiko.RSAKey.from_private_key_file(config['server-key'])
         self.client_key = load_public_key(config['client-public-key'])
