@@ -13,7 +13,7 @@ import paramiko
 
 from consys.common.network import load_public_key, CHANNEL_NAME, \
     CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
-from consys.common import config as configuration
+from consys.common import configuration
 from consys.common import scheduler
 
 

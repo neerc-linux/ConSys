@@ -8,7 +8,7 @@ import logging
 import threading
 from time import sleep
 
-from consys.common import config as configuration
+from consys.common import configuration
 
 __all__ = ['schedule']
 
