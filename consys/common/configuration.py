@@ -6,13 +6,13 @@ Configuration subsystem.
 from __future__ import unicode_literals
 from __future__ import print_function
 
-import logging
+from consys.common import log
 from sys import exit
 
 from configobj import ConfigObj, flatten_errors
 from validate import Validator
 
-log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 _filename = '/etc/consys/config.ini'
 _configspec = ConfigObj(_inspec=True, infile={})
@@ -43,9 +43,9 @@ def register_section(name, dict):
         section_string = ' -> '.join(section_list)
         if error == False:
             error = 'Missing value or section'
-        log.critical(section_string + ': ' + unicode(error))
+        _log.critical(section_string + ': ' + unicode(error))
     if res is not True:
-        log.critical('Errors in configuration. Exiting')
+        _log.critical('Errors in configuration. Exiting')
         exit()  # FIXME
     if name is None:
         return _config
@@ -55,8 +55,8 @@ def register_section(name, dict):
 def register_reload_handler(callback):
     _reload_handlers.append(callback)
 
-def reload(signum, frame):
-    log.info('Reloading configuration')
+def reload(signum=None, frame=None):
+    _log.info('Reloading configuration')
     _config.reload()
     for handler in _reload_handlers:
         handler.__call__()

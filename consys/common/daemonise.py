@@ -5,15 +5,19 @@ Daemonisation routines.
 '''
 
 
-import logging
+from __future__ import unicode_literals
+
 import daemon
 
+from consys.common import log
 from consys.common import configuration
 
 
-log = logging.getLogger(__name__)
+_preserved_handles = []
 
-config = configuration.register_section(None, 
+_log = log.getLogger(__name__)
+
+_config = configuration.register_section(None,
     {
         'daemonise': 'boolean(default=True)',
     })
@@ -27,10 +31,17 @@ class SimpleContext(object):
         pass
 
 
+def preserve_handle(*handles):
+    _preserved_handles.extend(handles)
+
 def getContext(*args, **kwargs):
-    if (config['daemonise']):
-        log.debug('Running in daemon context')
-        return daemon.DaemonContext(*args, **kwargs)
+    if (_config['daemonise']):
+        _log.debug('Running in daemon context')
+        context = daemon.DaemonContext(*args, **kwargs)
+        if context.files_preserve is None:
+            context.files_preserve = []
+        context.files_preserve += _preserved_handles
+        return context
     else:
-        log.debug('Running in NON-daemon context')
+        _log.debug('Running in NON-daemon context')
         return SimpleContext()

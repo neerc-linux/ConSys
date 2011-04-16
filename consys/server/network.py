@@ -19,7 +19,7 @@ from consys.common import scheduler
 
 __all__ = ['SSHServer']
 
-config = configuration.register_section('network',
+_config = configuration.register_section('network',
      {
         'bind-address': 'string(default=0.0.0.0)',
         'port': 'integer(min=1, max=65535, default=2222)',
@@ -28,7 +28,7 @@ config = configuration.register_section('network',
         'client-user-name': 'string(default=test)',
      })
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 class ControlSubsystemHandler(paramiko.SubsystemHandler):
     '''Server-to-client control subsystem handler.'''
@@ -39,7 +39,7 @@ class ControlSubsystemHandler(paramiko.SubsystemHandler):
     
     def start_subsystem(self, name, transport, channel):
         '''Request handling logic.'''
-        log.debug("Incoming S2C control channel!")
+        _log.debug("Incoming S2C control channel!")
         self.connection.set_control_channel(channel)
         #import pdb; pdb.set_trace()
         channel.sendall(b'WTF?')
@@ -49,14 +49,14 @@ class RPCSubsystemHandler(paramiko.SubsystemHandler):
     
     def start_subsystem(self, name, transport, channel):
         '''Request handling logic.'''
-        log.debug("Incoming C2S RPC channel!")
+        _log.debug("Incoming C2S RPC channel!")
         
 class RPCReverseSubsystemHandler(paramiko.SubsystemHandler):
     '''Server-to-client RPC subsystem handler.'''
     
     def start_subsystem(self, name, transport, channel):
         '''Request handling logic.'''
-        log.debug("Incoming S2C RPC back-channel!")
+        _log.debug("Incoming S2C RPC back-channel!")
 
 class SSHConnection(object):
     '''A server side of the SSH connection.'''
@@ -81,7 +81,7 @@ class SSHConnection(object):
     def close(self):
         '''Closes the connection.'''
         # FIXME: clean up gracefully
-        log.info("Closing SSH connection")
+        _log.info("Closing SSH connection")
         self.transport.close()
         self.server.connections.remove(self)
         
@@ -144,7 +144,7 @@ class PersistentThreadingMixIn(object):
     
     def handle_error(self, request, client_address):
         '''Handle an error gracefully.'''
-        log.exception('Exception happened during processing of request '
+        _log.exception('Exception happened during processing of request '
                       'from "{0}"'.format(client_address))
 
     
@@ -159,14 +159,14 @@ class SSHServer(asyncore.dispatcher):
         asyncore.dispatcher.__init__(self, map=self.map)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
-        self.bind((config['bind-address'], config['port']))
+        self.bind((_config['bind-address'], _config['port']))
         self.listen(self.backlog_size)
-        log.debug('Server is listening on {0}:{1}'.format(config['bind-address'],
-                                                          config['port']))
+        _log.debug('Server is listening on {0}:{1}'.format(_config['bind-address'],
+                                                          _config['port']))
         self.server_pkey = \
-            paramiko.RSAKey.from_private_key_file(config['server-key'])
-        self.client_key = load_public_key(config['client-public-key'])
-        self.username = config['client-user-name']
+            paramiko.RSAKey.from_private_key_file(_config['server-key'])
+        self.client_key = load_public_key(_config['client-public-key'])
+        self.username = _config['client-user-name']
         self.connections = []
         
     def handle_accept(self):
@@ -175,7 +175,7 @@ class SSHServer(asyncore.dispatcher):
         if client is None:
             return
         socket, client_address = client
-        log.debug('Incoming TCP connection '
+        _log.debug('Incoming TCP connection '
                   'from {0}'.format(client_address))
         connection = SSHConnection(socket, self)
         self.connections.append(connection)

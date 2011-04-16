@@ -9,7 +9,7 @@ import base64
 import logging
 import paramiko
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 CHANNEL_NAME = b'session@consys'
 CONTROL_SYBSYSTEM = b'control@consys'

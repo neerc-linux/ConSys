@@ -12,17 +12,17 @@ from consys.common import configuration
 
 __all__ = ['schedule']
 
-config = configuration.register_section('scheduler', 
+_config = configuration.register_section('scheduler',
     {
         'thread-pool-size': 'integer(min=1, default=5)',
     })
 
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 def schedule(self, task, args=()):
     '''Schedules the call and returns a future'''
     future = Future()
-    log.debug('Scheduling task {0}...'.format(future))
+    _log.debug('Scheduling task {0}...'.format(future))
     self.pool.queueTask(task, args, future.callback)
     return future
         
@@ -35,7 +35,7 @@ class Future:
     def callback(self, retval):
         self.event.acquire()
         try:
-            log.debug('Task {0} completed'.format(self))
+            _log.debug('Task {0} completed'.format(self))
             self.retval = retval
             self.ready = True
             self.event.notify_all()
@@ -197,4 +197,4 @@ class ThreadPoolThread(threading.Thread):
         
         self.__isDying = True
 
-pool = ThreadPool(config['thread-pool-size'])
+pool = ThreadPool(_config['thread-pool-size'])
