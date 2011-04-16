@@ -13,7 +13,6 @@ import threading
 import paramiko
 
 from consys.common import configuration
-from consys.common import scheduler
 from consys.common.network import *
 
 
@@ -36,6 +35,7 @@ class ControlSubsystemHandler(SubsystemHandler):
     def __init__(self, channel, name, server, connection):
         SubsystemHandler.__init__(self, channel, name, server)
         self.connection = connection
+        _log.debug('Incoming control channel!')
         connection.set_control_handler(self)
 
 class RPCSubsystemHandler(paramiko.SubsystemHandler):
@@ -58,6 +58,7 @@ class SSHConnection(object):
     def __init__(self, socket, server):
         '''Creates a SSH server-side endpoint.'''
         self.server = server
+        self.server.connections.append(self)
         self.transport = paramiko.Transport(socket)
         self.transport.add_server_key(server.server_pkey)
         self.transport.start_server(server=ServerImpl(self))
@@ -121,14 +122,14 @@ class ServerImpl(paramiko.ServerInterface):
             return paramiko.OPEN_SUCCEEDED
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
     
-    def check_channel_subsystem_request(self, channel, name):
-        handler_class, larg, kwarg = \
-            channel.get_transport()._get_subsystem_handler(name)
-        if handler_class is None:
-            return False
-        handler = handler_class(channel, name, self, *larg, **kwarg)
-        scheduler.schedule(handler.run)
-        return True
+#    def check_channel_subsystem_request(self, channel, name):
+#        handler_class, larg, kwarg = \
+#            channel.get_transport()._get_subsystem_handler(name)
+#        if handler_class is None:
+#            return False
+#        handler = handler_class(channel, name, self, *larg, **kwarg)
+#        scheduler.schedule(handler.run)
+#        return True
 
 class PersistentThreadingMixIn(object):
     '''A mix-in class for SocketServer, allows to create persistent
@@ -166,8 +167,7 @@ class SSHServer(AsyncMixIn, asyncore.dispatcher):
 
     def __init__(self):
         '''Constructs a new server with specified configuration.'''
-        self.map = {}
-        asyncore.dispatcher.__init__(self, map=self.map)
+        asyncore.dispatcher.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((_config['bind-address'], _config['port']))
@@ -188,9 +188,9 @@ class SSHServer(AsyncMixIn, asyncore.dispatcher):
         socket, client_address = client
         _log.debug('Incoming TCP connection '
                   'from {0}'.format(client_address))
-        connection = SSHConnection(socket, self)
-        self.connections.append(connection)
+        SSHConnection(socket, self)
     
-    def serve_forever(self):
-        '''Serves until this server is closed.'''
-        asyncore.loop(map=self.map)
+
+def dispatch_loop():
+    '''Dispatches messages until all dispatchers are closed.'''
+    asyncore.loop()

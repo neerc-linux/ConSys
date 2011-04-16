@@ -8,7 +8,7 @@ import lockfile
 from consys.common import log
 from consys.common import configuration
 import consys.common.daemonise as daemonise
-from consys.server.network import SSHServer
+from consys.server import network
 
 _log = log.getLogger(__name__)
 
@@ -27,8 +27,8 @@ def run():
     with context:
         try:
             _log.info('Initializing ConSys server daemon...')
-            server = SSHServer()
-            server.serve_forever()
+            network.SSHServer()
+            network.dispatch_loop()
             _log.info('Terminating ConSys server daemon...')
         except Exception:
             _log.exception('Unhandled exception in main thread, exiting')
