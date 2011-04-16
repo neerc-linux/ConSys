@@ -7,6 +7,8 @@ from __future__ import unicode_literals
 
 import logging
 import time
+import asynchat
+import json
 import threading
 import paramiko
 
@@ -42,6 +44,28 @@ class ControlChannelListener(threading.Thread):
             log.debug('Got control message: \'{0}\''.format(line))
             time.sleep(5)
 
+class control_request_handler(asynchat.async_chat):
+
+    def __init__(self, sock):
+        asynchat.async_chat.__init__(self, sock=sock)
+        self.ibuffer = []
+        self.obuffer = ''
+        self.set_terminator('\0')
+        self.handling = False
+
+    def collect_incoming_data(self, data):
+        '''Buffer the data'''
+        self.ibuffer.append(data)
+
+    def found_terminator(self):
+        data = ''.join(self.ibuffer)
+        self.ibuffer = []
+        try:
+            request = json.loads(data)
+        except ValueError:
+            log.error('Invalid control request from server:'
+                      ' \'{0}\''.format(data))
+        log.debug('Control request: \'{0}\''.format(request))
 
 class SSHClient(object):
     '''A SSH protocol client.'''

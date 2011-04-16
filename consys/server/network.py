@@ -8,13 +8,13 @@ from __future__ import unicode_literals
 import logging
 import socket
 import asyncore
+import json
 import threading
 import paramiko
 
 from consys.common import configuration
 from consys.common import scheduler
-from consys.common.network import load_public_key, CHANNEL_NAME, \
-    CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
+from consys.common.network import *
 
 
 __all__ = ['SSHServer']
@@ -30,19 +30,13 @@ _config = configuration.register_section('network',
 
 _log = logging.getLogger(__name__)
 
-class ControlSubsystemHandler(paramiko.SubsystemHandler):
+class ControlSubsystemHandler(SubsystemHandler):
     '''Server-to-client control subsystem handler.'''
     
     def __init__(self, channel, name, server, connection):
-        paramiko.SubsystemHandler.__init__(self, channel, name, server)
+        SubsystemHandler.__init__(self, channel, name, server)
         self.connection = connection
-    
-    def start_subsystem(self, name, transport, channel):
-        '''Request handling logic.'''
-        _log.debug('Incoming S2C control channel!')
-        self.connection.set_control_channel(channel)
-        #import pdb; pdb.set_trace()
-        channel.sendall(b'WTF?')
+        connection.set_control_handler(self)
 
 class RPCSubsystemHandler(paramiko.SubsystemHandler):
     '''Client-to-server RPC subsystem handler.'''
@@ -67,17 +61,34 @@ class SSHConnection(object):
         self.transport = paramiko.Transport(socket)
         self.transport.add_server_key(server.server_pkey)
         self.transport.start_server(server=ServerImpl(self))
+        self.control_event = threading.Event()
         self.transport.set_subsystem_handler(CONTROL_SYBSYSTEM, 
                                              ControlSubsystemHandler, self)
         self.transport.set_subsystem_handler(RPC_C2S_SYBSYSTEM, 
                                              RPCSubsystemHandler)
-        self.control_channel = None
+        self.control_handler = None
+        self.next_s2c_id = 0
+        self.s2c_lock = threading.Lock()
+        if not self.control_event.wait(1): # wait 1 second for the client
+            raise NetworkError('Client has not connected control channel '
+                               'in time')
         
-    def set_control_channel(self, channel):
-        '''Sets the control channel, if not already set.'''
-        if self.control_channel is None:
-            self.control_channel = channel
+    def set_control_handler(self, handler):
+        '''Sets the control channel handler, if not already set.'''
+        if self.control_handler is None:
+            self.control_event.set()
+            self.control_handler = handler
             
+    def send_channel_request(self):
+        '''Requests a new S2C channel to be opened'''
+        if self.control_handler is None:
+            raise NetworkError('Client control channel is not connected')
+        with self.s2c_lock:
+            request = [OPEN_S2C_MESSAGE, self.next_s2c_id]
+            self.next_s2c_id += 1
+        data = json.dumps(request) + '\0'
+        self.control_handler.send(data)
+
     def close(self):
         '''Closes the connection.'''
         # FIXME: clean up gracefully
@@ -148,7 +159,7 @@ class PersistentThreadingMixIn(object):
                       'from \'{0}\''.format(client_address))
 
     
-class SSHServer(asyncore.dispatcher):
+class SSHServer(AsyncMixIn, asyncore.dispatcher):
     '''An SSH protocol server.'''
 
     backlog_size = 5
