@@ -7,7 +7,7 @@ import logging.handlers
 
 import lockfile
 
-import consys.common.config as conf
+from consys.common import configuration
 import consys.common.daemonise as daemonise
 from consys.server.network import SSHServer
 
@@ -36,7 +36,7 @@ def run():
         #pidfile=lockfile.FileLock(u'consys-server.run'),
         signal_map = {
             signal.SIGUSR1: 'terminate',
-            signal.SIGHUP: conf.reload,
+            signal.SIGHUP: configuration.reload,
             },
         files_preserve = [log_file.stream],
         )
