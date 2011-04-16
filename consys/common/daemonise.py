@@ -8,13 +8,15 @@ Daemonisation routines.
 import logging
 import daemon
 
-import consys.common.config as conf
+from consys.common import configuration
 
 
 log = logging.getLogger(__name__)
-config = conf.register_section(None, {
-                                      'daemonise': 'boolean(default=True)',
-                                      })
+
+config = configuration.register_section(None, 
+    {
+        'daemonise': 'boolean(default=True)',
+    })
 
 
 class SimpleContext(object):

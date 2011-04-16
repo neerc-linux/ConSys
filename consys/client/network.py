@@ -12,15 +12,17 @@ import paramiko
 
 from consys.common.network import load_public_key, CHANNEL_NAME, \
     CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
-import consys.common.config as conf
+from consys.common import configuration
 
-config = conf.register_section('network', {
-                                           'server-address': 'string()',
-                                           'port': 'integer(min=1, max=65535, default=2222)',
-                                           'client-key': 'string(default=/etc/consys/keys/client)',
-                                           'server-public-key': 'string(default=/etc/consys/keys/server.pub)',
-                                           'client-user-name': 'string(default=test)',
-                                           })
+config = configuration.register_section('network', 
+    {
+        'server-address': 'string()',
+        'port': 'integer(min=1, max=65535, default=2222)',
+        'client-key': 'string(default=/etc/consys/keys/client)',
+        'server-public-key': 'string(default=/etc/consys/keys/server.pub)',
+        'client-user-name': 'string(default=test)',
+    })
+
 log = logging.getLogger(__name__)
 
 class ControlChannelListener(threading.Thread):
