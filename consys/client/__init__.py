@@ -5,8 +5,9 @@ import signal
 import logging
 import logging.handlers
 
-import daemon
 import lockfile
+
+import consys.common.daemonise as daemonise
 
 def run():
     # Setting up logging
@@ -29,7 +30,7 @@ def run():
     root_log.info('Logging started')
     log = logging.getLogger(__name__)
     
-    context = daemon.DaemonContext(
+    context = daemonise.getContext(
         #pidfile=lockfile.FileLock(u'consys-client.run'),
         signal_map = {
             signal.SIGUSR1: u'terminate',
@@ -37,9 +38,8 @@ def run():
         files_preserve = [log_file.stream],
     )
     
-    log.debug('Entering daemon context...')
-    if True:
-    #with context:
+    log.debug('Entering running context...')
+    with context:
         try:
             log.info('Initializing ConSys client daemon...')
             from consys.client.network import SSHClient
