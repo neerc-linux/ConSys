@@ -10,8 +10,6 @@ import logging
 import asyncore
 import paramiko
 
-from consys.common import scheduler
-
 _log = logging.getLogger(__name__)
 
 __all__ = [
