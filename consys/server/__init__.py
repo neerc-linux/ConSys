@@ -7,7 +7,7 @@ import lockfile
 
 from consys.common import log
 from consys.common import configuration
-import consys.common.daemonise as daemonise
+from consys.common import daemonise
 from consys.server import network
 
 _log = log.getLogger(__name__)
