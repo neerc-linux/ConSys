@@ -13,17 +13,21 @@ import paramiko
 
 from consys.common.network import load_public_key, CHANNEL_NAME, \
     CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
-import consys.common.config as conf
+from consys.common import config as configuration
+from consys.common import scheduler
+
 
 __all__ = ['SSHServer']
 
-config = conf.register_section('network', {
-                                           'bind-address': 'string(default=0.0.0.0)',
-                                           'port': 'integer(min=1, max=65535, default=2222)',
-                                           'server-key': 'string(default=/etc/consys/keys/server)',
-                                           'client-public-key': 'string(default=/etc/consys/keys/client.pub)',
-                                           'client-user-name': 'string(default=test)',
-                                           })
+config = configuration.register_section('network',
+     {
+        'bind-address': 'string(default=0.0.0.0)',
+        'port': 'integer(min=1, max=65535, default=2222)',
+        'server-key': 'string(default=/etc/consys/keys/server)',
+        'client-public-key': 'string(default=/etc/consys/keys/client.pub)',
+        'client-user-name': 'string(default=test)',
+     })
+
 log = logging.getLogger(__name__)
 
 class ControlSubsystemHandler(paramiko.SubsystemHandler):
@@ -37,7 +41,7 @@ class ControlSubsystemHandler(paramiko.SubsystemHandler):
         '''Request handling logic.'''
         log.debug("Incoming S2C control channel!")
         self.connection.set_control_channel(channel)
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         channel.sendall(b'WTF?')
 
 class RPCSubsystemHandler(paramiko.SubsystemHandler):
@@ -105,6 +109,15 @@ class ServerImpl(paramiko.ServerInterface):
         if kind == CHANNEL_NAME:
             return paramiko.OPEN_SUCCEEDED
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
+    
+    def check_channel_subsystem_request(self, channel, name):
+        handler_class, larg, kwarg = \
+            channel.get_transport()._get_subsystem_handler(name)
+        if handler_class is None:
+            return False
+        handler = handler_class(channel, name, self, *larg, **kwarg)
+        scheduler.schedule(handler.run)
+        return True
 
 class PersistentThreadingMixIn(object):
     '''A mix-in class for SocketServer, allows to create persistent
