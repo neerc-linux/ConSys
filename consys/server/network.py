@@ -11,10 +11,10 @@ import asyncore
 import threading
 import paramiko
 
-from consys.common.network import load_public_key, CHANNEL_NAME, \
-    CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
 from consys.common import configuration
 from consys.common import scheduler
+from consys.common.network import load_public_key, CHANNEL_NAME, \
+    CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
 
 
 __all__ = ['SSHServer']
