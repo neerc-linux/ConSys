@@ -1,5 +1,4 @@
-'''
-Daemonisation routines.
+''' Daemonisation routines.
 
 @author: Kirill Elagin
 '''

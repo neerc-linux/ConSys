@@ -1,7 +1,7 @@
-"""
-Client-side network routines.
+''' Client-side network routines.
+
 @author: Nikita Ofitserov
-"""
+'''
 
 from __future__ import unicode_literals 
 
@@ -10,9 +10,9 @@ import time
 import threading
 import paramiko
 
+from consys.common import configuration
 from consys.common.network import load_public_key, CHANNEL_NAME, \
     CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
-from consys.common import configuration
 
 config = configuration.register_section('network', 
     {
@@ -26,8 +26,8 @@ config = configuration.register_section('network',
 log = logging.getLogger(__name__)
 
 class ControlChannelListener(threading.Thread):
-    '''
-    A thread for listening on the control channel and opening reverse channels.
+    '''A thread for listening on the control channel and opening 
+    reverse channels.
     '''
     def __init__(self, client, channel):
         threading.Thread.__init__(self)
@@ -39,15 +39,16 @@ class ControlChannelListener(threading.Thread):
     def run(self):
         while True:
             line = self.socket.readline()
-            log.debug("Got control message: '{0}'".format(line))
+            log.debug('Got control message: \'{0}\''.format(line))
             time.sleep(5)
 
 
 class SSHClient(object):
-    '''
-    A SSH protocol client.
-    '''
+    '''A SSH protocol client.'''
+    
     def __init__(self):
+        '''Initializes the client and connects it to the server.
+        '''
         self.transport = paramiko.Transport((config['server-address'],
                                              config['port']))
         self.client_pkey = \
@@ -65,9 +66,8 @@ class SSHClient(object):
         time.sleep(10)
         
     def interact(self, subsytem, data):
-        '''
-        Creates a new channel using specified subsystem, sends out the data and
-        receives an answer. The answer is returned.
+        '''Creates a new channel using specified subsystem, sends out the data 
+        and receives an answer. The answer is returned.
         '''
         channel = self.transport.open_channel(CHANNEL_NAME)
         channel.invoke_subsystem(RPC_C2S_SYBSYSTEM)
@@ -75,5 +75,4 @@ class SSHClient(object):
         f = channel.makefile()
         answer = f.read()
         return answer
-    
-        
+

@@ -1,4 +1,4 @@
-'''Server-side network routines.
+''' Server-side network routines.
 
 @author: Nikita Ofitserov
 '''
@@ -11,10 +11,10 @@ import asyncore
 import threading
 import paramiko
 
-from consys.common.network import load_public_key, CHANNEL_NAME, \
-    CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
 from consys.common import configuration
 from consys.common import scheduler
+from consys.common.network import load_public_key, CHANNEL_NAME, \
+    CONTROL_SYBSYSTEM, RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM
 
 
 __all__ = ['SSHServer']
@@ -39,7 +39,7 @@ class ControlSubsystemHandler(paramiko.SubsystemHandler):
     
     def start_subsystem(self, name, transport, channel):
         '''Request handling logic.'''
-        _log.debug("Incoming S2C control channel!")
+        _log.debug('Incoming S2C control channel!')
         self.connection.set_control_channel(channel)
         #import pdb; pdb.set_trace()
         channel.sendall(b'WTF?')
@@ -49,14 +49,14 @@ class RPCSubsystemHandler(paramiko.SubsystemHandler):
     
     def start_subsystem(self, name, transport, channel):
         '''Request handling logic.'''
-        _log.debug("Incoming C2S RPC channel!")
+        _log.debug('Incoming C2S RPC channel!')
         
 class RPCReverseSubsystemHandler(paramiko.SubsystemHandler):
     '''Server-to-client RPC subsystem handler.'''
     
     def start_subsystem(self, name, transport, channel):
         '''Request handling logic.'''
-        _log.debug("Incoming S2C RPC back-channel!")
+        _log.debug('Incoming S2C RPC back-channel!')
 
 class SSHConnection(object):
     '''A server side of the SSH connection.'''
@@ -81,7 +81,7 @@ class SSHConnection(object):
     def close(self):
         '''Closes the connection.'''
         # FIXME: clean up gracefully
-        _log.info("Closing SSH connection")
+        _log.info('Closing SSH connection')
         self.transport.close()
         self.server.connections.remove(self)
         
@@ -96,7 +96,7 @@ class ServerImpl(paramiko.ServerInterface):
         self.connection.close()
         
     def get_allowed_auths(self, username):
-        return b"publickey"
+        return b'publickey'
     
     def check_auth_publickey(self, username, key):
         server = self.connection.server
@@ -145,7 +145,7 @@ class PersistentThreadingMixIn(object):
     def handle_error(self, request, client_address):
         '''Handle an error gracefully.'''
         _log.exception('Exception happened during processing of request '
-                      'from "{0}"'.format(client_address))
+                      'from \'{0}\''.format(client_address))
 
     
 class SSHServer(asyncore.dispatcher):
