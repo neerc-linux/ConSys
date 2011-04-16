@@ -29,5 +29,5 @@ if __name__ == '__main__':
         a = __import__('consys.' + action, fromlist=[b'run'])
         a.run()
     except ImportError as e:
-        print('Sorry, "{}" is not available on this system'.format(action),
+        print('Sorry, "{0}" is not available on this system'.format(action),
               file=sys.stderr)
