@@ -17,13 +17,13 @@ import consys.common.config as conf
 
 __all__ = ['SSHServer']
 
-config = conf.registerSection('network', {
-                                          'bind-address': 'string(default=0.0.0.0)',
-                                          'port': 'integer(min=1, max=65535, default=2222)',
-                                          'server-key': 'string(default=/etc/consys/keys/server)',
-                                          'client-public-key': 'string(default=/etc/consys/keys/client.pub)',
-                                          'client-user-name': 'string(default=test)',
-                                          })
+config = conf.register_section('network', {
+                                           'bind-address': 'string(default=0.0.0.0)',
+                                           'port': 'integer(min=1, max=65535, default=2222)',
+                                           'server-key': 'string(default=/etc/consys/keys/server)',
+                                           'client-public-key': 'string(default=/etc/consys/keys/client.pub)',
+                                           'client-user-name': 'string(default=test)',
+                                           })
 log = logging.getLogger(__name__)
 
 class ControlSubsystemHandler(paramiko.SubsystemHandler):

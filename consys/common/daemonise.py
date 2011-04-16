@@ -12,9 +12,9 @@ import consys.common.config as conf
 
 
 log = logging.getLogger(__name__)
-config = conf.registerSection(None, {
-                                     'daemonise': 'boolean(default=True)',
-                                     })
+config = conf.register_section(None, {
+                                      'daemonise': 'boolean(default=True)',
+                                      })
 
 
 class SimpleContext(object):
