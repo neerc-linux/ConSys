@@ -10,7 +10,7 @@ from time import sleep
 
 from consys.common import configuration
 
-__all__ = ['schedule']
+__all__ = ['schedule', 'Future']
 
 _config = configuration.register_section('scheduler',
     {
@@ -22,25 +22,38 @@ _log = logging.getLogger(__name__)
 def schedule(self, task, args=()):
     '''Schedules the call and returns a future'''
     future = Future()
-    _log.debug('Scheduling task {0}...'.format(future))
-    self.pool.queueTask(task, args, future.callback)
+    self.pool.queueTask(task, args, future.set_result)
     return future
         
 class Future:
+    ''' A generic future value class '''
+    
     def __init__(self):
         self.event = threading.Condition(threading.Lock())
         self.ready = False 
         self.retval = None
+        self.callback = None
     
-    def callback(self, retval):
+    def set_callback(self, callback):
         self.event.acquire()
         try:
-            _log.debug('Task {0} completed'.format(self))
+            self.callback = callback
+            run = self.ready and callback is not None
+        finally:
+            self.event.release()
+        if run:
+            callback(self)
+    
+    def set_result(self, retval):
+        self.event.acquire()
+        try:
             self.retval = retval
             self.ready = True
             self.event.notify_all()
         finally:
             self.event.release()
+        if self.callback is not None:
+            self.callback(self)
             
     def get_result(self):
         self.event.acquire()
@@ -180,7 +193,7 @@ class ThreadPoolThread(threading.Thread):
         
     def run(self):
         ''' Until told to quit, retrieve the next task and execute
-        it, calling the callback if any.  '''
+        it, calling the set_result if any.  '''
         
         while self.__isDying == False:
             cmd, args, callback = self.__pool.getNextTask()
