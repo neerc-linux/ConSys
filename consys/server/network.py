@@ -13,7 +13,10 @@ import threading
 import paramiko
 
 from consys.common import configuration
-from consys.common.network import *
+from consys.common.network import CHANNEL_NAME, CONTROL_SYBSYSTEM, \
+    RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM, OPEN_S2C_MESSAGE, AsyncMixIn, \
+    IncomingRequestHandler, SubsystemHandler, NetworkError, load_public_key, \
+    dispatch_loop
 
 
 __all__ = ['SSHServer']
@@ -29,6 +32,9 @@ _config = configuration.register_section('network',
 
 _log = logging.getLogger(__name__)
 
+# FIXME: Any better way to inherit a method?
+dispatch_loop = dispatch_loop
+
 class ControlSubsystemHandler(SubsystemHandler):
     '''Server-to-client control subsystem handler.'''
     
@@ -38,19 +44,27 @@ class ControlSubsystemHandler(SubsystemHandler):
         _log.debug('Incoming control channel!')
         connection.set_control_handler(self)
 
-class RPCSubsystemHandler(paramiko.SubsystemHandler):
+
+class RPCSubsystemHandler(SubsystemHandler):
     '''Client-to-server RPC subsystem handler.'''
-    
-    def start_subsystem(self, name, transport, channel):
-        '''Request handling logic.'''
+
+    def __init__(self, channel, name, server, connection):
+        SubsystemHandler.__init__(self, channel, name, server)
+        self.connection = connection
         _log.debug('Incoming C2S RPC channel!')
+        IncomingRequestHandler(channel, connection.handle_request)
         
-class RPCReverseSubsystemHandler(paramiko.SubsystemHandler):
+        
+class RPCReverseSubsystemHandler(SubsystemHandler):
     '''Server-to-client RPC subsystem handler.'''
-    
-    def start_subsystem(self, name, transport, channel):
-        '''Request handling logic.'''
+
+    def __init__(self, channel, name, server, id, callback):
+        SubsystemHandler.__init__(self, channel, name, server)
+        self.id = id
         _log.debug('Incoming S2C RPC back-channel!')
+        channel.get_transport().set_subsystem_handler(name, None)
+        callback(id, channel)
+        
 
 class SSHConnection(object):
     '''A server side of the SSH connection.'''
@@ -66,7 +80,7 @@ class SSHConnection(object):
         self.transport.set_subsystem_handler(CONTROL_SYBSYSTEM, 
                                              ControlSubsystemHandler, self)
         self.transport.set_subsystem_handler(RPC_C2S_SYBSYSTEM, 
-                                             RPCSubsystemHandler)
+                                             RPCSubsystemHandler, self)
         self.control_handler = None
         self.next_s2c_id = 0
         self.s2c_lock = threading.Lock()
@@ -80,15 +94,23 @@ class SSHConnection(object):
             self.control_event.set()
             self.control_handler = handler
             
-    def send_channel_request(self):
+    def send_channel_request(self, callback):
         '''Requests a new S2C channel to be opened'''
         if self.control_handler is None:
             raise NetworkError('Client control channel is not connected')
         with self.s2c_lock:
-            request = [OPEN_S2C_MESSAGE, self.next_s2c_id]
+            id = self.next_s2c_id
             self.next_s2c_id += 1
+        request = [OPEN_S2C_MESSAGE, id]
         data = json.dumps(request) + '\0'
+        self.transport.set_subsystem_handler(RPC_S2C_SYBSYSTEM.format(id), 
+                                             RPCReverseSubsystemHandler, id,
+                                             callback)        
         self.control_handler.send(data)
+
+    def handle_request(self, request):
+        _log.debug('Handling C2S request "{0}"'.format(request))
+        return b'566'
 
     def close(self):
         '''Closes the connection.'''
@@ -122,14 +144,6 @@ class ServerImpl(paramiko.ServerInterface):
             return paramiko.OPEN_SUCCEEDED
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
     
-#    def check_channel_subsystem_request(self, channel, name):
-#        handler_class, larg, kwarg = \
-#            channel.get_transport()._get_subsystem_handler(name)
-#        if handler_class is None:
-#            return False
-#        handler = handler_class(channel, name, self, *larg, **kwarg)
-#        scheduler.schedule(handler.run)
-#        return True
 
 class PersistentThreadingMixIn(object):
     '''A mix-in class for SocketServer, allows to create persistent
@@ -188,9 +202,6 @@ class SSHServer(AsyncMixIn, asyncore.dispatcher):
         socket, client_address = client
         _log.debug('Incoming TCP connection '
                   'from {0}'.format(client_address))
-        SSHConnection(socket, self)
-    
-
-def dispatch_loop():
-    '''Dispatches messages until all dispatchers are closed.'''
-    asyncore.loop()
+        connection = SSHConnection(socket, self)
+        # XXX: test only
+        #connection.send_channel_request()
