@@ -24,8 +24,8 @@ _config = configuration.register_section('network',
      {
         'bind-address': 'string(default=0.0.0.0)',
         'port': 'integer(min=1, max=65535, default=2222)',
-        'server-key': 'string(default=/etc/consys/keys/server)',
-        'client-public-key': 'string(default=/etc/consys/keys/client.pub)',
+        'server-key': 'path(default=keys/server)',
+        'client-public-key': 'path(default=keys/client.pub)',
         'client-user-name': 'string(default=test)',
      })
 

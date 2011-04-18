@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import os
 import signal
 
 import lockfile
@@ -25,6 +24,8 @@ def run():
     _log.debug('Entering running context...')
     with context:
         try:
+            _log.info('Working directory: {0}'.format(configuration.workingdir()))
+            _log.info('Configuration file: {0}'.format(configuration.filename()))
             _log.info('Initializing ConSys server daemon...')
             from consys.server import network
             network.start_networking()
