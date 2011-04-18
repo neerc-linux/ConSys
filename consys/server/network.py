@@ -6,18 +6,17 @@
 from __future__ import unicode_literals 
 
 import logging
-import socket
-import asyncore
-import json
-import threading
-import paramiko
+from twisted.conch import avatar
+from twisted.conch.checkers import SSHPublicKeyDatabase
+from twisted.conch.ssh import session, keys, factory, userauth, connection,\
+    channel
+from twisted.cred import portal
+from twisted.internet import reactor
+from twisted.spread import pb
+from zope.interface import implements
 
 from consys.common import configuration
-from consys.common.network import CHANNEL_NAME, CONTROL_SYBSYSTEM, \
-    RPC_C2S_SYBSYSTEM, RPC_S2C_SYBSYSTEM, OPEN_S2C_MESSAGE, AsyncMixIn, \
-    IncomingRequestHandler, SubsystemHandler, NetworkError, load_public_key, \
-    dispatch_loop
-
+from consys.common import network
 
 __all__ = ['SSHServer']
 
@@ -32,176 +31,99 @@ _config = configuration.register_section('network',
 
 _log = logging.getLogger(__name__)
 
-# FIXME: Any better way to inherit a method?
-dispatch_loop = dispatch_loop
+class ClientAvatar(avatar.ConchUser):
 
-class ControlSubsystemHandler(SubsystemHandler):
-    '''Server-to-client control subsystem handler.'''
-    
-    def __init__(self, channel, name, server, connection):
-        SubsystemHandler.__init__(self, channel, name, server)
-        self.connection = connection
-        _log.debug('Incoming control channel!')
-        connection.set_control_handler(self)
+    def __init__(self, username):
+        avatar.ConchUser.__init__(self)
+        self.username = username
+        self.channelLookup.update({'session': session.SSHSession})
 
 
-class RPCSubsystemHandler(SubsystemHandler):
-    '''Client-to-server RPC subsystem handler.'''
+class ExampleRealm:
+    implements(portal.IRealm)
 
-    def __init__(self, channel, name, server, connection):
-        SubsystemHandler.__init__(self, channel, name, server)
-        self.connection = connection
-        _log.debug('Incoming C2S RPC channel!')
-        IncomingRequestHandler(channel, connection.handle_request)
-        
-        
-class RPCReverseSubsystemHandler(SubsystemHandler):
-    '''Server-to-client RPC subsystem handler.'''
+    def requestAvatar(self, avatarId, mind, *interfaces):
+        # (implemeted_iface, avatar, logout_callable)
+        return interfaces[0], ClientAvatar(avatarId), lambda: None
 
-    def __init__(self, channel, name, server, id, callback):
-        SubsystemHandler.__init__(self, channel, name, server)
-        self.id = id
-        _log.debug('Incoming S2C RPC back-channel!')
-        channel.get_transport().set_subsystem_handler(name, None)
-        callback(id, channel)
+
+class InMemoryPublicKeyChecker(SSHPublicKeyDatabase):
+
+    def __init__(self, username, publickey):
+        self.username = username
+        self.publickey = publickey
+
+    def checkKey(self, credentials):
+        return credentials.username == self.username and \
+            self.publickey.blob() == credentials.blob
         
 
-class SSHConnection(object):
+class RpcRoot(pb.Root):
+    def remote_echo(self, st):
+        _log.debug('RPC echoing: "{0}"'.format(st))
+        return st
+
+
+class SSHConnection(connection.SSHConnection):
     '''A server side of the SSH connection.'''
     
-    def __init__(self, socket, server):
-        '''Creates a SSH server-side endpoint.'''
-        self.server = server
-        self.server.connections.append(self)
-        self.transport = paramiko.Transport(socket)
-        self.transport.add_server_key(server.server_pkey)
-        self.transport.start_server(server=ServerImpl(self))
-        self.control_event = threading.Event()
-        self.transport.set_subsystem_handler(CONTROL_SYBSYSTEM, 
-                                             ControlSubsystemHandler, self)
-        self.transport.set_subsystem_handler(RPC_C2S_SYBSYSTEM, 
-                                             RPCSubsystemHandler, self)
-        self.control_handler = None
-        self.next_s2c_id = 0
-        self.s2c_lock = threading.Lock()
-        if not self.control_event.wait(1): # wait 1 second for the client
-            raise NetworkError('Client has not connected control channel '
-                               'in time')
+    def serviceStarted(self):
+        connection.SSHConnection.serviceStarted(self)
+        _log.info('Client ready')
+        self.rpcRoot = RpcRoot()
+        self.rpcFactory = pb.PBServerFactory(self.rpcRoot)
+        self.listener = network.SimpleListener(self.rpcFactory)
+        self.listener.startListening()
+        channel = RpcChannel(listener=self.listener)
+        self.openChannel(channel)
         
-    def set_control_handler(self, handler):
-        '''Sets the control channel handler, if not already set.'''
-        if self.control_handler is None:
-            self.control_event.set()
-            self.control_handler = handler
+    def serviceStopped(self):
+        self.listener.stopListening()
+        connection.SSHConnection.serviceStopped(self)
+        
+
+class RpcChannel(channel.SSHChannel):
+    name = network.RPC_CHANNEL_NAME
+
+    def __init__(self, listener, localWindow = 0, localMaxPacket = 0,
+                       remoteWindow = 0, remoteMaxPacket = 0,
+                       conn = None, data=None, avatar = None):
+        channel.SSHChannel.__init__(self, localWindow, localMaxPacket,
+                                    remoteWindow, remoteMaxPacket, conn,
+                                    data, avatar)
+        self.listener = listener
+
+    def openFailed(self, reason):
+        _log.error('RPC channel opening failed: {0}'.format(reason))
+    
+    def channelOpen(self, extraData):
+        _log.info('RPC channel opened')
+        self.protocol = self.listener.makeConnection(self)
+        
+    def dataReceived(self, data):
+        self.protocol.dataReceived(data)
             
-    def send_channel_request(self, callback):
-        '''Requests a new S2C channel to be opened'''
-        if self.control_handler is None:
-            raise NetworkError('Client control channel is not connected')
-        with self.s2c_lock:
-            id = self.next_s2c_id
-            self.next_s2c_id += 1
-        request = [OPEN_S2C_MESSAGE, id]
-        data = json.dumps(request) + '\0'
-        self.transport.set_subsystem_handler(RPC_S2C_SYBSYSTEM.format(id), 
-                                             RPCReverseSubsystemHandler, id,
-                                             callback)        
-        self.control_handler.send(data)
 
-    def handle_request(self, request):
-        _log.debug('Handling C2S request "{0}"'.format(request))
-        return b'566'
+class SSHServerFactory(factory.SSHFactory):
+    publicKeys = {
+        b'ssh-rsa': keys.Key.fromFile(_config['server-key']).public()
+    }
+    privateKeys = {
+        b'ssh-rsa': keys.Key.fromFile(_config['server-key'])
+    }
+    services = {
+        b'ssh-userauth': userauth.SSHUserAuthServer,
+        b'ssh-connection': SSHConnection
+    }
 
-    def close(self):
-        '''Closes the connection.'''
-        # FIXME: clean up gracefully
-        _log.info('Closing SSH connection')
-        self.transport.close()
-        self.server.connections.remove(self)
-        
-        
-class ServerImpl(paramiko.ServerInterface):
-    '''A concrete ServerInterface implementation.'''
-    
-    def __init__(self, connection):
-        self.connection = connection
-        
-    def handle_disconnect(self):
-        self.connection.close()
-        
-    def get_allowed_auths(self, username):
-        return b'publickey'
-    
-    def check_auth_publickey(self, username, key):
-        server = self.connection.server
-        if username == server.username and key == server.client_key:
-            return paramiko.AUTH_SUCCESSFUL
-        return paramiko.AUTH_FAILED
-    
-    def check_channel_request(self, kind, chanid):
-        '''Only allow ConSys session channels'''
-        if kind == CHANNEL_NAME:
-            return paramiko.OPEN_SUCCEEDED
-        return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
-    
+portal = portal.Portal(ExampleRealm())
+portal.registerChecker(
+    InMemoryPublicKeyChecker(_config['client-user-name'],
+                             keys.Key.fromFile(_config['client-public-key'])))
+SSHServerFactory.portal = portal
 
-class PersistentThreadingMixIn(object):
-    '''A mix-in class for SocketServer, allows to create persistent
-    connections asynchronously.
-    '''
+def start_networking():
+    reactor.listenTCP(_config['port'], SSHServerFactory(), 
+                      interface=_config['bind-address'])
 
-    def process_request_thread(self, request, client_address):
-        '''Same as in BaseServer but as a thread.
-
-        In addition, exception handling is done here.
-        '''
-        try:
-            self.finish_request(request, client_address)
-        except Exception: 
-            self.handle_error(request, client_address)
-            self.shutdown_request(request)
-
-    def process_request(self, request, client_address):
-        '''Start a new thread to process the request.'''
-        t = threading.Thread(target = self.process_request_thread,
-                             args = (request, client_address))
-        t.setDaemon(1)
-        t.start()
-    
-    def handle_error(self, request, client_address):
-        '''Handle an error gracefully.'''
-        _log.exception('Exception happened during processing of request '
-                      'from \'{0}\''.format(client_address))
-
-    
-class SSHServer(AsyncMixIn, asyncore.dispatcher):
-    '''An SSH protocol server.'''
-
-    backlog_size = 5
-
-    def __init__(self):
-        '''Constructs a new server with specified configuration.'''
-        asyncore.dispatcher.__init__(self)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.set_reuse_addr()
-        self.bind((_config['bind-address'], _config['port']))
-        self.listen(self.backlog_size)
-        _log.debug('Server is listening on {0}:{1}'.format(_config['bind-address'],
-                                                          _config['port']))
-        self.server_pkey = \
-            paramiko.RSAKey.from_private_key_file(_config['server-key'])
-        self.client_key = load_public_key(_config['client-public-key'])
-        self.username = _config['client-user-name']
-        self.connections = []
-        
-    def handle_accept(self):
-        '''Handles new incoming connections.'''
-        client = self.accept()
-        if client is None:
-            return
-        socket, client_address = client
-        _log.debug('Incoming TCP connection '
-                  'from {0}'.format(client_address))
-        connection = SSHConnection(socket, self)
-        # XXX: test only
-        #connection.send_channel_request()
+dispatch_loop = network.dispatch_loop

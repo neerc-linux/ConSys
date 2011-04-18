@@ -8,7 +8,6 @@ import lockfile
 from consys.common import log
 from consys.common import configuration
 from consys.common import daemonise
-from consys.client import network 
 
 _log = log.getLogger(__name__)
 
@@ -27,7 +26,8 @@ def run():
     with context:
         try:
             _log.info('Initializing ConSys client daemon...')
-            client = network.SSHClient()
+            from consys.client import network 
+            network.start_networking()
             network.dispatch_loop()
             _log.info('Terminating ConSys client daemon...')
         except Exception:
