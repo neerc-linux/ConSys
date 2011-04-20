@@ -66,6 +66,7 @@ class AdminAvatar(avatar.ConchUser):
     def __init__(self, username):
         avatar.ConchUser.__init__(self)
         self.username = username
+        self.namespace = {"avatar": self}
         self.channelLookup.update({'session': session.SSHSession})
 
     def login(self, connection):
@@ -76,8 +77,8 @@ class AdminAvatar(avatar.ConchUser):
 
 
 class AdminTerminalSession(TerminalSession):
-    chainedProtocolFactory = lambda session: \
-        insults.ServerProtocol(ColoredManhole, globals())
+    chainedProtocolFactory = lambda self: \
+        insults.ServerProtocol(ColoredManhole, self.original.namespace)
     
 
 components.registerAdapter(AdminTerminalSession, AdminAvatar, session.ISession)
