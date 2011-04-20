@@ -22,7 +22,6 @@ from twisted.python import components
 from twisted.spread import pb
 
 from consys.common import configuration, network
-from twisted.conch.manhole_tap import chainedProtocolFactory
 from twisted.conch.insults import insults
 from twisted.conch.manhole import ColoredManhole
 
@@ -51,13 +50,13 @@ class ClientAvatar(avatar.ConchUser):
         self.rpcFactory = pb.PBServerFactory(self.rpcRoot)
         self.listener = network.SimpleListener(self.rpcFactory)
 
-    def login(self, connection):
+    def loggedIn(self, connection):
         self.connection = connection
         self.listener.startListening()
         channel = RpcChannel(listener=self.listener)
         self.connection.openChannel(channel)
     
-    def logout(self):
+    def loggedOut(self):
         self.listener.stopListening()
         
 
@@ -69,10 +68,10 @@ class AdminAvatar(avatar.ConchUser):
         self.namespace = {'self': self}
         self.channelLookup.update({'session': session.SSHSession})
 
-    def login(self, connection):
+    def loggedIn(self, connection):
         pass
     
-    def logout(self):
+    def loggedOut(self):
         pass
 
 
@@ -94,7 +93,7 @@ class ExampleRealm:
         else:
             avatar = AdminAvatar(avatarId)
         # (implemeted_iface, avatar, logout_callable)
-        return interfaces[0], avatar, avatar.logout
+        return interfaces[0], avatar, avatar.loggedOut
 
 
 class InMemoryPublicKeyChecker(SSHPublicKeyDatabase):
@@ -120,7 +119,7 @@ class SSHConnection(connection.SSHConnection):
     def serviceStarted(self):
         connection.SSHConnection.serviceStarted(self)
         _log.info('SSH connection ready')
-        self.transport.avatar.login(self)
+        self.transport.avatar.loggedIn(self)
         
     def serviceStopped(self):
         connection.SSHConnection.serviceStopped(self)
