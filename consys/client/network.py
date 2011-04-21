@@ -22,7 +22,7 @@ _config = configuration.register_section('network',
         'port': 'integer(min=1, max=65535, default=2222)',
         'client-key': 'path(default=keys/client)',
         'server-public-key': 'path(default=keys/server.pub)',
-        'client-user-name': 'string(default=test)',
+        'client-user-name': 'string(default=terminal)',
     })
 
 _log = logging.getLogger(__name__)

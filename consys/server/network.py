@@ -66,7 +66,7 @@ class AdminAvatar(avatar.ConchUser):
     def __init__(self, username):
         avatar.ConchUser.__init__(self)
         self.username = username
-        self.namespace = {"avatar": self}
+        self.namespace = {'self': self}
         self.channelLookup.update({'session': session.SSHSession})
 
     def login(self, connection):
@@ -89,7 +89,7 @@ class ExampleRealm:
 
     def requestAvatar(self, avatarId, mind, *interfaces):
         if avatarId == _config['client-user-name']:
-            # FIXME: ask the client's ID 
+            # FIXME: ask the client's ID
             avatar = ClientAvatar('no-id')
         else:
             avatar = AdminAvatar(avatarId)
@@ -163,7 +163,8 @@ class SSHServerFactory(factory.SSHFactory):
 def _htpasswd_hash(username, password, hashedpassword):
     if hashedpassword.startswith('{SHA}'):
         return '{SHA}' + base64.b64encode(hashlib.sha1(password).digest())
-    return 'bad-hash-algorithm'
+    else:
+        return 'bad-hash-algorithm'
 
 portal = portal.Portal(ExampleRealm())
 portal.registerChecker(FilePasswordDB(_config['user-auth-db'],
