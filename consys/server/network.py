@@ -12,6 +12,8 @@ import logging
 from zope.interface import implements
 from twisted.conch import avatar
 from twisted.conch.checkers import SSHPublicKeyDatabase
+from twisted.conch.insults import insults
+from twisted.conch.manhole import ColoredManhole
 from twisted.conch.manhole_ssh import TerminalSession
 from twisted.conch.ssh import session, keys, factory, userauth, connection, \
     channel
@@ -22,8 +24,7 @@ from twisted.python import components
 from twisted.spread import pb
 
 from consys.common import configuration, network
-from twisted.conch.insults import insults
-from twisted.conch.manhole import ColoredManhole
+from consys.server import connections
 
 
 __all__ = ['SSHServer']
@@ -40,35 +41,46 @@ _config = configuration.register_section('network',
 
 _log = logging.getLogger(__name__)
 
-class ClientAvatar(avatar.ConchUser):
+class ClientAvatar(avatar.ConchUser, pb.Root):
 
     def __init__(self, terminalId):
         avatar.ConchUser.__init__(self)
         self.terminalId = terminalId
         self.channelLookup.update({'session': session.SSHSession})
-        self.rpcRoot = RpcRoot()
-        self.rpcFactory = pb.PBServerFactory(self.rpcRoot)
+        self.rpcFactory = pb.PBServerFactory(self)
         self.listener = network.SimpleListener(self.rpcFactory)
 
-    def loggedIn(self, connection):
-        self.connection = connection
+    def loggedIn(self):
+        # self.conn = SSHConnection
+        connections.tracker.added_client(self)
         self.listener.startListening()
         channel = RpcChannel(listener=self.listener)
-        self.connection.openChannel(channel)
+        self.conn.openChannel(channel)
+        
+    def remote_echo(self, st):
+        _log.debug('RPC echoing: "{0}"'.format(st))
+        return st
+    
+    def remote_set_mind(self, mind):
+        self.mind = mind
+        _log.info('RPC connection ready')    
     
     def loggedOut(self):
+        connections.tracker.removed_client(self)
         self.listener.stopListening()
         
 
-class AdminAvatar(avatar.ConchUser):
+class AdminAvatar(avatar.ConchUser, pb.Root):
 
     def __init__(self, username):
         avatar.ConchUser.__init__(self)
         self.username = username
-        self.namespace = {'self': self}
+        self.namespace = {
+                          'self': self
+                          }
         self.channelLookup.update({'session': session.SSHSession})
 
-    def loggedIn(self, connection):
+    def loggedIn(self):
         pass
     
     def loggedOut(self):
@@ -105,12 +117,6 @@ class InMemoryPublicKeyChecker(SSHPublicKeyDatabase):
     def checkKey(self, credentials):
         return credentials.username == self.username and \
             self.publickey.blob() == credentials.blob
-        
-
-class RpcRoot(pb.Root):
-    def remote_echo(self, st):
-        _log.debug('RPC echoing: "{0}"'.format(st))
-        return st
 
 
 class SSHConnection(connection.SSHConnection):
@@ -119,7 +125,7 @@ class SSHConnection(connection.SSHConnection):
     def serviceStarted(self):
         connection.SSHConnection.serviceStarted(self)
         _log.info('SSH connection ready')
-        self.transport.avatar.loggedIn(self)
+        self.transport.avatar.loggedIn()
         
     def serviceStopped(self):
         connection.SSHConnection.serviceStopped(self)

@@ -15,6 +15,7 @@ from twisted.spread import pb
 from consys.common import configuration
 from consys.common import network
 from twisted.conch import error
+from consys.client import root
 
 _config = configuration.register_section('network', 
     {
@@ -66,20 +67,26 @@ class SSHConnection(connection.SSHConnection):
     def serviceStarted(self):
         connection.SSHConnection.serviceStarted(self)
         _log.info('Authentication successful')
+        self.mind = root.Root()
         self.rpcFactory = pb.PBClientFactory()
         rpcRoot = self.rpcFactory.getRootObject()
         rpcRoot.addCallback(self.initRpc)
+        
+    def serviceStopped(self):
+        self.rpcFactory.disconnect()
+        connection.SSHConnection.serviceStopped(self)
         
     def channel_rpc_consys(self, windowSize, maxPacket, data):
         channel = RpcChannel(factory=self.rpcFactory, remoteWindow=windowSize,
                              remoteMaxPacket=maxPacket, data=data)
         return channel
     
-    def initRpc(self, root):
-        self.rpcRoot = root
+    def initRpc(self, rpcRoot):
+        self.rpcRoot = rpcRoot
         _log.info('RPC ready')
         _log.debug('Calling test method')
         self.rpcRoot.callRemote(b'echo', '566: test').addCallback(self._cbInit)
+        self.rpcRoot.callRemote(b'set_mind', self.mind)
         
     def _cbInit(self, result):
         _log.debug('Got result: "{0}"'.format(result))
