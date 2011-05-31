@@ -27,6 +27,9 @@ def run():
             _log.info('Working directory: {0}'.format(configuration.workingdir()))
             _log.info('Configuration file: {0}'.format(configuration.filename()))
             _log.info('Initializing ConSys client daemon...')
+            # Install GLib reactor
+            from twisted.internet import glib2reactor
+            glib2reactor.install()
             from consys.client import network 
             network.start_networking()
             network.dispatch_loop()
