@@ -30,7 +30,7 @@ def run():
             # Install GLib reactor
             from twisted.internet import glib2reactor
             glib2reactor.install()
-            from consys.client import network 
+            from consys.client import network
             network.start_networking()
             network.dispatch_loop()
             _log.info('Terminating ConSys client daemon...')
