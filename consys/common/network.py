@@ -5,15 +5,11 @@
 
 from __future__ import unicode_literals 
 
-import logging
+from consys.common import log
 
 from twisted.internet import reactor, base, defer
-from twisted.python import log as twisted_log
 
-_log = logging.getLogger(__name__)
-
-_log_observer =  twisted_log.PythonLoggingObserver()
-_log_observer.start()
+_log = log.getLogger(__name__)
 
 
 RPC_CHANNEL_NAME = b'rpc@consys'

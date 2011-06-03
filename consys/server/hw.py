@@ -5,13 +5,13 @@ Contest hardware management
 
 from __future__ import unicode_literals
 
-import logging
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 
+from consys.common import log
 from consys.server import persistent, network
 
-_log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 class StateError(Exception):
     '''

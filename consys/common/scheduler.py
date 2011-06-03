@@ -4,10 +4,10 @@
 
 from __future__ import unicode_literals
 
-import logging
 import threading
 from time import sleep
 
+from consys.common import log
 from consys.common import configuration
 
 __all__ = ['schedule', 'Future']
@@ -17,7 +17,7 @@ _config = configuration.register_section('scheduler',
         'thread-pool-size': 'integer(min=1, default=5)',
     })
 
-_log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 def schedule(self, task, args=()):
     '''Schedules the call and returns a future'''

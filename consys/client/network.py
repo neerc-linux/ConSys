@@ -6,7 +6,6 @@
 from __future__ import unicode_literals 
 
 import os
-import logging
 import random
 
 from twisted.conch import error
@@ -14,6 +13,7 @@ from twisted.conch.ssh import transport, userauth, connection, keys, channel
 from twisted.internet import defer, protocol, reactor
 from twisted.spread import pb
 
+from consys.common import log
 from consys.common import configuration, app
 from consys.common import network
 from consys.common import auto
@@ -28,7 +28,7 @@ _config = configuration.register_section('network',
         'client-user-name': 'string(default=terminal)',
     })
 
-_log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 class ClientTransport(transport.SSHClientTransport):
     ''' '''

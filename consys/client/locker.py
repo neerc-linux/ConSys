@@ -3,15 +3,14 @@ Manage desktop locking
 @author: Nikita Ofitserov
 '''
 
-import logging
-
 from twisted.internet.defer import inlineCallbacks
 from twisted.spread import pb
 
+from consys.common import log
 from consys.common import configuration
 from consys.client import dbus
 
-_log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 _config = configuration.register_section('locker', 
     {

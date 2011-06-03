@@ -49,3 +49,7 @@ def init(filename=None):
         _root_log.addHandler(log_syslog)
     
     _root_log.info('Logging started')
+
+    # Set up twisted to use generic logging
+    from twisted.python import log as twisted_log
+    twisted_log.PythonLoggingObserver().start()

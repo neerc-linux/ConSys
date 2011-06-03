@@ -2,14 +2,14 @@
 @author: Nikita Ofitserov
 '''
 
-import logging
-
 from twisted.spread import pb
 from twisted.internet import reactor
 
+from consys.common import log
+
 from consys.client import dbus, locker, persistent
 
-_log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 TERMINAL_ID_ENTRY = b'terminal-id'
 

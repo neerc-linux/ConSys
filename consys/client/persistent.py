@@ -5,12 +5,12 @@ Persistent storage support. Based on Shelve.
 
 from __future__ import unicode_literals
 
-import logging
 import shelve
 
 from notify.all import Signal
 
 
+from consys.common import log
 from consys.common import configuration, app
 
 _config = configuration.register_section('client-persistence', 
@@ -18,7 +18,7 @@ _config = configuration.register_section('client-persistence',
         'db-file': 'string(default=data/client.db)',
     })
 
-_log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 ready = Signal()
 '''Is emitted when the storage becomes available'''

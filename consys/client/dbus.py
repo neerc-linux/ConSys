@@ -5,12 +5,13 @@ DBus integration module, using twisted Deferreds
 
 from __future__ import absolute_import
 
-import logging
 import dbus
+
+from consys.common import log
 
 from twisted.internet import defer
 
-_log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 class Bus:
     def __init__(self, bus):

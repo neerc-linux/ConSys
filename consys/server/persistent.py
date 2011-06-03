@@ -5,7 +5,6 @@ Persistent storage support. Based on Twistar/SQLite3.
 
 from __future__ import unicode_literals
 
-import logging
 from urlparse import urlparse
 
 from notify.all import Signal
@@ -15,6 +14,7 @@ from twistar.dbconfig.base import InteractionBase
 
 from twisted.enterprise import adbapi
 
+from consys.common import log
 from consys.common import configuration, app
 
 _config = configuration.register_section('server-persistence', 
@@ -22,7 +22,7 @@ _config = configuration.register_section('server-persistence',
         'db-url': 'string(default=sqlite:///data/server.db)',
     })
 
-_log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 def _handle_sqlite(parsed_url):
     return ('sqlite3', {

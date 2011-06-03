@@ -2,13 +2,12 @@
 @author: Nikita Ofitserov
 '''
 
-import logging
-
 from twisted.spread import pb
 
+from consys.server import log
 from consys.server import network
 
-_log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 class Tracker(pb.Referenceable):
     '''  '''

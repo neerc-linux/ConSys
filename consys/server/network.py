@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import base64
 import hashlib
-import logging
 
 from zope.interface import implements
 from notify.all import Signal
@@ -24,6 +23,7 @@ from twisted.internet import reactor
 from twisted.python import components
 from twisted.spread import pb
 
+from consys.common import log
 from consys.common import configuration, network, app
 
 __all__ = ['on_startup', 'client_connected', 'client_disconnected']
@@ -38,7 +38,7 @@ _config = configuration.register_section('network',
         'user-auth-db': 'path(default=data/admins.txt)'
      })
 
-_log = logging.getLogger(__name__)
+_log = log.getLogger(__name__)
 
 class ClientAvatar(avatar.ConchUser, pb.Root):
 
