@@ -14,7 +14,7 @@ from twisted.conch.ssh import transport, userauth, connection, keys, channel
 from twisted.internet import defer, protocol, reactor
 from twisted.spread import pb
 
-from consys.common import configuration
+from consys.common import configuration, app
 from consys.common import network
 from consys.common import auto
 from consys.client import root
@@ -204,13 +204,11 @@ _server_public_key = keys.Key.fromFile(_config['server-public-key'])
 
 autoConnection = ConnectionAutomaton()
 
-def start_networking():
-    def _onShutdown():
-        autoConnection.event('disconnect')
-    reactor.addSystemEventTrigger('before', 'shutdown', _onShutdown)
+def on_startup():
     autoConnection.event('connect')
 
-def stop_networking():
+def on_shutdown():
     autoConnection.event('disconnect')
 
-dispatch_loop = network.dispatch_loop
+app.startup.connect(on_startup)
+app.shutdown.connect(on_shutdown)

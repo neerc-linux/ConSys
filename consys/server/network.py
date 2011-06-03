@@ -10,6 +10,7 @@ import hashlib
 import logging
 
 from zope.interface import implements
+from notify.all import Signal
 from twisted.conch import avatar
 from twisted.conch.checkers import SSHPublicKeyDatabase
 from twisted.conch.insults import insults
@@ -23,11 +24,9 @@ from twisted.internet import reactor
 from twisted.python import components
 from twisted.spread import pb
 
-from consys.common import configuration, network
-from consys.server import connections
+from consys.common import configuration, network, app
 
-
-__all__ = ['SSHServer']
+__all__ = ['on_startup', 'client_connected', 'client_disconnected']
 
 _config = configuration.register_section('network',
      {
@@ -52,21 +51,21 @@ class ClientAvatar(avatar.ConchUser, pb.Root):
 
     def loggedIn(self):
         # self.conn = SSHConnection
-        connections.tracker.added_client(self)
         self.listener.startListening()
         channel = RpcChannel(listener=self.listener)
         self.conn.openChannel(channel)
-        
+    
     def remote_echo(self, st):
         _log.debug('RPC echoing: "{0}"'.format(st))
         return st
     
     def remote_set_mind(self, mind):
         self.mind = mind
+        client_connected(self)
         _log.info('RPC connection ready')    
     
     def loggedOut(self):
-        connections.tracker.removed_client(self)
+        client_disconnected(self)
         self.listener.stopListening()
         
 
@@ -171,16 +170,27 @@ def _htpasswd_hash(username, password, hashedpassword):
     else:
         return 'bad-hash-algorithm'
 
-portal = portal.Portal(ExampleRealm())
-portal.registerChecker(FilePasswordDB(_config['user-auth-db'],
+_portal = portal.Portal(ExampleRealm())
+_portal.registerChecker(FilePasswordDB(_config['user-auth-db'],
                                       hash=_htpasswd_hash, cache=True))
-portal.registerChecker(
+_portal.registerChecker(
     InMemoryPublicKeyChecker(_config['client-user-name'],
                              keys.Key.fromFile(_config['client-public-key'])))
-SSHServerFactory.portal = portal
+SSHServerFactory.portal = _portal
 
-def start_networking():
+def on_startup():
     reactor.listenTCP(_config['port'], SSHServerFactory(), 
                       interface=_config['bind-address'])
 
-dispatch_loop = network.dispatch_loop
+app.startup.connect(on_startup)
+
+client_connected = Signal()
+''' Is emitted when a client connects.
+@param avatar: Client's avatar
+@type avatar: ClientAvatar 
+'''
+client_disconnected = Signal()
+''' Is emitted when a client disconnects.
+@param avatar: Client's avatar
+@type avatar: ClientAvatar 
+'''

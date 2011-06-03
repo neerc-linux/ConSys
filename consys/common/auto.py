@@ -1,7 +1,8 @@
-"""
+'''
 Automata-related code
 @author: Nikita Ofitserov
-"""
+'''
+
 import logging
 
 _log = logging.getLogger(__name__)

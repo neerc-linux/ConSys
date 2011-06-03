@@ -7,20 +7,36 @@ import logging
 from twisted.spread import pb
 from twisted.internet import reactor
 
-from consys.client import dbus, locker
+from consys.client import dbus, locker, persistence
 
 _log = logging.getLogger(__name__)
+
+TERMINAL_ID_ENTRY = b'terminal-id'
 
 class Root(pb.Referenceable):
     
     def __init__(self):
         self.locker = locker.Locker()
+        if not TERMINAL_ID_ENTRY in persistence.storage:
+            self.terminal_id = None
+            persistence.storage[TERMINAL_ID_ENTRY] = self.terminal_id
+        else:
+            self.terminal_id = persistence.storage[TERMINAL_ID_ENTRY]
+            _log.debug('Terminal id is {0}'.format(self.terminal_id))
     
     def remote_shutdown(self):
         reactor.stop()
         
     def remote_get_locker(self):
         return self.locker
+    
+    def remote_get_terminal_id(self):
+        return self.terminal_id
+    
+    def remote_set_terminal_id(self, id):
+        _log.info('Got assigned terminal id {0}'.format(id))
+        self.terminal_id = id
+        persistence.storage[TERMINAL_ID_ENTRY] = id
 
     def remote_call_dbus(self, bus, bus_name, object_path, iface_name,
                             method, args):

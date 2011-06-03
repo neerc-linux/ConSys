@@ -18,12 +18,6 @@ _log_observer.start()
 
 RPC_CHANNEL_NAME = b'rpc@consys'
 
-
-def dispatch_loop():
-    '''Dispatches messages until program shutdown.'''
-    reactor.run()
-
-
 class SimpleConnector(base.BaseConnector):
     def __init__(self, transport, factory, timeout, reactor=None):
         self.transport = transport

@@ -27,9 +27,10 @@ def run():
             _log.info('Working directory: {0}'.format(configuration.workingdir()))
             _log.info('Configuration file: {0}'.format(configuration.filename()))
             _log.info('Initializing ConSys server daemon...')
-            from consys.server import network
-            network.start_networking()
-            network.dispatch_loop()
+            from consys.common import app
+            from consys.server import network, persistence, hw
+            app.startup()
+            app.dispatch_loop()
             _log.info('Terminating ConSys server daemon...')
         except Exception:
             _log.exception('Unhandled exception in main thread, exiting')

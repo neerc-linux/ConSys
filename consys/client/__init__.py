@@ -30,9 +30,10 @@ def run():
             # Install GLib reactor
             from twisted.internet import glib2reactor
             glib2reactor.install()
-            from consys.client import network
-            network.start_networking()
-            network.dispatch_loop()
+            from consys.common import app
+            from consys.client import network, persistence
+            app.startup()
+            app.dispatch_loop()
             _log.info('Terminating ConSys client daemon...')
         except Exception:
             _log.exception('Unhandled exception in main thread, exiting')

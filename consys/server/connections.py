@@ -1,13 +1,18 @@
 ''' Keeps track of network connections
 @author: Nikita Ofitserov
 '''
+
 from twisted.spread import pb
+
+from consys.server import network
 
 class Tracker(pb.Referenceable):
     '''  '''
     def __init__(self):
         self.clients = []
         self.admins = []
+        network.client_connected.connect(self.added_client)
+        network.client_disconnected.connect(self.removed_client)
         
     def added_client(self, avatar):
         self.clients.append(avatar)
