@@ -31,7 +31,7 @@ def run():
             from twisted.internet import glib2reactor
             glib2reactor.install()
             from consys.common import app
-            from consys.client import network, persistence
+            from consys.client import network, persistent
             app.startup()
             app.dispatch_loop()
             _log.info('Terminating ConSys client daemon...')

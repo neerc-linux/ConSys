@@ -9,7 +9,7 @@ import logging
 
 from twisted.internet.defer import inlineCallbacks, returnValue
 
-from consys.server import persistence, network
+from consys.server import persistent, network
 
 _log = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class StateError(Exception):
     Indicates that a transition in a illegal hardware state was requested.
     '''
 
-class Terminal(persistence.Base):
+class Terminal(persistent.Base):
     '''
     Represents a contest terminal (computer, capable of being a workstation).
     
@@ -29,7 +29,7 @@ class Terminal(persistence.Base):
     TABLENAME = 'terminals'
 
     def __init__(self, **kwargs):
-        persistence.Base.__init__(self, **kwargs)
+        persistent.Base.__init__(self, **kwargs)
         self.client = None
     
     def __repr__(self):
@@ -55,7 +55,7 @@ class Manager(object):
     Manages all hardware, keeping track of network events.
     '''
     def __init__(self):
-        persistence.ready.connect(self.on_db_ready)
+        persistent.ready.connect(self.on_db_ready)
         network.client_connected.connect(self.on_client_connection)
         network.client_disconnected.connect(self.on_client_disconnect)
 
