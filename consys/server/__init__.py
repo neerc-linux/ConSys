@@ -28,7 +28,7 @@ def run():
             _log.info('Configuration file: {0}'.format(configuration.filename()))
             _log.info('Initializing ConSys server daemon...')
             from consys.common import app
-            from consys.server import network, persistence, hw
+            from consys.server import network, persistence, hw, connections
             app.startup()
             app.dispatch_loop()
             _log.info('Terminating ConSys server daemon...')
