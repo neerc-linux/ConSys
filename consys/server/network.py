@@ -78,7 +78,8 @@ class AdminAvatar(avatar.ConchUser, pb.Root):
         avatar.ConchUser.__init__(self)
         self.username = username
         self.namespace = {
-                          'self': self
+                          'self': self,
+                          'reactor': reactor,
                           }
         self.channelLookup.update({'session': session.SSHSession})
 
