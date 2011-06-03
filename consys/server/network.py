@@ -42,12 +42,15 @@ _log = logging.getLogger(__name__)
 
 class ClientAvatar(avatar.ConchUser, pb.Root):
 
-    def __init__(self, terminalId):
+    def __init__(self):
         avatar.ConchUser.__init__(self)
-        self.terminalId = terminalId
+        self.terminalId = None
         self.channelLookup.update({'session': session.SSHSession})
         self.rpcFactory = pb.PBServerFactory(self)
         self.listener = network.SimpleListener(self.rpcFactory)
+
+    def __repr__(self):
+        return 'ClientAvatar(terminalID: {0})'.format(self.terminalId)
 
     def loggedIn(self):
         # self.conn = SSHConnection
@@ -99,8 +102,7 @@ class ExampleRealm:
 
     def requestAvatar(self, avatarId, mind, *interfaces):
         if avatarId == _config['client-user-name']:
-            # FIXME: ask the client's ID
-            avatar = ClientAvatar('no-id')
+            avatar = ClientAvatar()
         else:
             avatar = AdminAvatar(avatarId)
         # (implemeted_iface, avatar, logout_callable)

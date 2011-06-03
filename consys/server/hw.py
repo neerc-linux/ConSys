@@ -41,11 +41,14 @@ class Terminal(persistence.Base):
             raise StateError('Client {0} cannot connect to {1}'.format(client,
                                                                        self))
         self.client = client
+        client.terminalId = self.id
     
     def disconnect(self):
         if not self.client:
             raise StateError('Terminal {0} cannot be disconnected'.format(self))
+        self.client.terminalId = None
         self.client = None
+
     
 class Manager(object):
     '''
