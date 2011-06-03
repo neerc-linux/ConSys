@@ -15,7 +15,7 @@ from consys.common import configuration, app
 
 _config = configuration.register_section('client-persistence', 
     {
-        'db-file': 'string(default=data/client.db)',
+        'db-file': 'path(default=data/client.db)',
     })
 
 _log = log.getLogger(__name__)

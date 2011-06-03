@@ -18,8 +18,7 @@ class Root(pb.Referenceable):
     def __init__(self):
         self.locker = locker.Locker()
         if not TERMINAL_ID_ENTRY in persistent.storage:
-            self.terminal_id = None
-            persistent.storage[TERMINAL_ID_ENTRY] = self.terminal_id
+            persistent.storage[TERMINAL_ID_ENTRY] = self.terminal_id = None
         else:
             self.terminal_id = persistent.storage[TERMINAL_ID_ENTRY]
             _log.debug('Terminal id is {0}'.format(self.terminal_id))

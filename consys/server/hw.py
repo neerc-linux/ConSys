@@ -15,12 +15,12 @@ _log = log.getLogger(__name__)
 
 class StateError(Exception):
     '''
-    Indicates that a transition in a illegal hardware state was requested.
+    Indicates that a transition while in an illegal hardware state was requested.
     '''
 
 class Terminal(persistent.Base):
     '''
-    Represents a contest terminal (computer, capable of being a workstation).
+    Represents a contest terminal (computer capable of being a workstation).
     
     Table structure:
       id :: INTEGER, primary_key
