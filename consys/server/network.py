@@ -50,7 +50,7 @@ class ClientAvatar(avatar.ConchUser, pb.Root):
         self.listener = network.SimpleListener(self.rpcFactory)
 
     def __repr__(self):
-        return 'ClientAvatar(terminalID: {0})'.format(self.terminalId)
+        return '<ClientAvatar(terminalID: {0})>'.format(self.terminalId)
 
     def loggedIn(self):
         # self.conn = SSHConnection
