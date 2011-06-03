@@ -8,47 +8,32 @@ from __future__ import unicode_literals
 from consys.common import log
 
 from twisted.internet import reactor, base, defer
+from twisted.conch.ssh import channel
 
 _log = log.getLogger(__name__)
 
 
 RPC_CHANNEL_NAME = b'rpc@consys'
 
-class SimpleConnector(base.BaseConnector):
-    def __init__(self, transport, factory, timeout, reactor=None):
-        self.transport = transport
-        base.BaseConnector.__init__(self, factory, timeout, reactor)
+class RpcChannel(channel.SSHChannel):
+    name = RPC_CHANNEL_NAME
 
-    def _makeTransport(self):
-        return self.transport
-
-
-class SimpleListener(object):
-    def __init__(self, factory, reactor=None):
+    def __init__(self, factory, localWindow = 0, localMaxPacket = 0,
+                       remoteWindow = 0, remoteMaxPacket = 0,
+                       conn = None, data=None, avatar = None):
+        channel.SSHChannel.__init__(self, localWindow, localMaxPacket,
+                                    remoteWindow, remoteMaxPacket, conn,
+                                    data, avatar)
         self.factory = factory
-        self.listening = False
 
-    def startListening(self):
-        self.factory.doStart()
-        self.listening = True
-
-    def stopListening(self):
-        self.listening = False
-        self.factory.doStop()
-        return defer.succeed(True)
+    def openFailed(self, reason):
+        _log.error('RPC channel opening failed: {0}'.format(reason))
     
-    def makeConnection(self, transport):
-        protocol = self.factory.buildProtocol(None)
-        if protocol is None:
-            return
-        protocol.makeConnection(transport)
-        return protocol
-        
+    def channelOpen(self, extraData):
+        _log.info('RPC channel opened')
+        self.protocol = self.factory.buildProtocol(None)
+        self.protocol.makeConnection(self)
 
-def connectSSH(channel, factory, timeout=30):
-    c = SimpleConnector(channel, factory, timeout, reactor)
-    c.connect()
-    protocol = c.buildProtocol(None)
-    protocol.makeConnection(channel)
-    return protocol
+    def dataReceived(self, data):
+        self.protocol.dataReceived(data)
 

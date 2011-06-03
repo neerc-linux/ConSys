@@ -9,7 +9,7 @@ import os
 import random
 
 from twisted.conch import error
-from twisted.conch.ssh import transport, userauth, connection, keys, channel
+from twisted.conch.ssh import transport, userauth, connection, keys
 from twisted.internet import defer, protocol, reactor
 from twisted.spread import pb
 
@@ -89,8 +89,9 @@ class SSHConnection(connection.SSHConnection):
         connection.SSHConnection.serviceStopped(self)
         
     def channel_rpc_consys(self, windowSize, maxPacket, data):
-        channel = RpcChannel(factory=self.rpcFactory, remoteWindow=windowSize,
-                             remoteMaxPacket=maxPacket, data=data)
+        channel = network.RpcChannel(factory=self.rpcFactory,
+                                     remoteWindow=windowSize,
+                                     remoteMaxPacket=maxPacket, data=data)
         return channel
     
     def initRpc(self, rpcRoot):
@@ -103,31 +104,6 @@ class SSHConnection(connection.SSHConnection):
         _log.info('RPC ready')
         return self
         
-
-class RpcChannel(channel.SSHChannel):
-    name = network.RPC_CHANNEL_NAME
-
-    def __init__(self, factory, localWindow = 0, localMaxPacket = 0,
-                       remoteWindow = 0, remoteMaxPacket = 0,
-                       conn = None, data=None, avatar = None):
-        channel.SSHChannel.__init__(self, localWindow, localMaxPacket,
-                                    remoteWindow, remoteMaxPacket, conn,
-                                    data, avatar)
-        self.factory = factory
-
-    def openFailed(self, reason):
-        _log.error('RPC channel opening failed: {0}'.format(reason))
-    
-    def channelOpen(self, extraData):
-        _log.info('RPC channel opened')
-        self.protocol = network.connectSSH(self, self.factory)
-        
-    def failIfNotConnected(self, err):
-        _log.error('Could not connect to the RPC server')
-        self.loseConnection()
-
-    def dataReceived(self, data):
-        self.protocol.dataReceived(data)
 
 class ConnectionAutomaton(auto.SimpleAutomaton):
     _states = ['disconnected', 'connecting', 'cooldown', 'connected', 

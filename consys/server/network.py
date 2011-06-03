@@ -15,8 +15,7 @@ from twisted.conch.checkers import SSHPublicKeyDatabase
 from twisted.conch.insults import insults
 from twisted.conch.manhole import ColoredManhole
 from twisted.conch.manhole_ssh import TerminalSession
-from twisted.conch.ssh import session, keys, factory, userauth, connection, \
-    channel
+from twisted.conch.ssh import session, keys, factory, userauth, connection
 from twisted.cred import portal
 from twisted.cred.checkers import FilePasswordDB
 from twisted.internet import reactor
@@ -45,22 +44,14 @@ class ClientAvatar(avatar.ConchUser, pb.Root):
     def __init__(self):
         avatar.ConchUser.__init__(self)
         self.terminalId = None
-        self.channelLookup.update({'session': session.SSHSession})
         self.rpcFactory = pb.PBServerFactory(self)
-        self.listener = network.SimpleListener(self.rpcFactory)
 
     def __repr__(self):
         return '<ClientAvatar(terminalID: {0})>'.format(self.terminalId)
 
     def loggedIn(self):
-        # self.conn = SSHConnection
-        self.listener.startListening()
-        channel = RpcChannel(listener=self.listener)
+        channel = network.RpcChannel(factory=self.rpcFactory)
         self.conn.openChannel(channel)
-    
-    def remote_echo(self, st):
-        _log.debug('RPC echoing: "{0}"'.format(st))
-        return st
     
     def remote_set_mind(self, mind):
         self.mind = mind
@@ -69,7 +60,6 @@ class ClientAvatar(avatar.ConchUser, pb.Root):
     
     def loggedOut(self):
         client_disconnected(self)
-        self.listener.stopListening()
         
 
 class AdminAvatar(avatar.ConchUser, pb.Root):
@@ -132,28 +122,6 @@ class SSHConnection(connection.SSHConnection):
     def serviceStopped(self):
         connection.SSHConnection.serviceStopped(self)
         
-
-class RpcChannel(channel.SSHChannel):
-    name = network.RPC_CHANNEL_NAME
-
-    def __init__(self, listener, localWindow = 0, localMaxPacket = 0,
-                       remoteWindow = 0, remoteMaxPacket = 0,
-                       conn = None, data=None, avatar = None):
-        channel.SSHChannel.__init__(self, localWindow, localMaxPacket,
-                                    remoteWindow, remoteMaxPacket, conn,
-                                    data, avatar)
-        self.listener = listener
-
-    def openFailed(self, reason):
-        _log.error('RPC channel opening failed: {0}'.format(reason))
-    
-    def channelOpen(self, extraData):
-        _log.info('RPC channel opened')
-        self.protocol = self.listener.makeConnection(self)
-        
-    def dataReceived(self, data):
-        self.protocol.dataReceived(data)
-            
 
 class SSHServerFactory(factory.SSHFactory):
     publicKeys = {
