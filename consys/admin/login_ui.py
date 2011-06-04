@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'login.ui'
+# Form implementation generated from reading ui file 'consys/admin/login.ui'
 #
-# Created: Sat Jun  4 23:14:56 2011
+# Created: Sun Jun  5 01:10:02 2011
 #      by: PyQt4 UI code generator 4.8.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -18,25 +18,30 @@ class Ui_LoginDialog(object):
     def setupUi(self, LoginDialog):
         LoginDialog.setObjectName(_fromUtf8("LoginDialog"))
         LoginDialog.setWindowModality(QtCore.Qt.WindowModal)
-        LoginDialog.resize(251, 113)
-        LoginDialog.setMinimumSize(QtCore.QSize(251, 113))
-        LoginDialog.setMaximumSize(QtCore.QSize(251, 113))
+        LoginDialog.resize(236, 111)
+        LoginDialog.setMinimumSize(QtCore.QSize(0, 0))
+        LoginDialog.setMaximumSize(QtCore.QSize(16777215, 16777215))
         LoginDialog.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
         LoginDialog.setModal(True)
         self.verticalLayout = QtGui.QVBoxLayout(LoginDialog)
+        self.verticalLayout.setSizeConstraint(QtGui.QLayout.SetFixedSize)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.fieldsWidget = QtGui.QWidget(LoginDialog)
         self.fieldsWidget.setObjectName(_fromUtf8("fieldsWidget"))
         self.verticalLayout_2 = QtGui.QVBoxLayout(self.fieldsWidget)
-        self.verticalLayout_2.setMargin(0)
+        self.verticalLayout_2.setContentsMargins(0, -1, 0, 0)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.editLogin = QtGui.QLineEdit(self.fieldsWidget)
+        self.editLogin.setMinimumSize(QtCore.QSize(228, 23))
         self.editLogin.setInputMethodHints(QtCore.Qt.ImhNone)
+        self.editLogin.setMaxLength(15)
         self.editLogin.setAlignment(QtCore.Qt.AlignCenter)
         self.editLogin.setObjectName(_fromUtf8("editLogin"))
         self.verticalLayout_2.addWidget(self.editLogin)
         self.editPassword = QtGui.QLineEdit(self.fieldsWidget)
+        self.editPassword.setMinimumSize(QtCore.QSize(228, 23))
         self.editPassword.setInputMethodHints(QtCore.Qt.ImhHiddenText|QtCore.Qt.ImhNoAutoUppercase|QtCore.Qt.ImhNoPredictiveText)
+        self.editPassword.setMaxLength(20)
         self.editPassword.setEchoMode(QtGui.QLineEdit.Password)
         self.editPassword.setAlignment(QtCore.Qt.AlignCenter)
         self.editPassword.setObjectName(_fromUtf8("editPassword"))
@@ -51,6 +56,7 @@ class Ui_LoginDialog(object):
         self.bottomWidget.setObjectName(_fromUtf8("bottomWidget"))
         self.horizontalLayout_2 = QtGui.QHBoxLayout(self.bottomWidget)
         self.horizontalLayout_2.setSizeConstraint(QtGui.QLayout.SetDefaultConstraint)
+        self.horizontalLayout_2.setMargin(0)
         self.horizontalLayout_2.setMargin(0)
         self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
