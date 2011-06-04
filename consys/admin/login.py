@@ -22,12 +22,9 @@ class LoginHandler(object):
         self.ui.editLogin.setEnabled(False)
         self.ui.editPassword.setEnabled(False)
         self.ui.buttonLogin.setEnabled(False)
-        hostname = 'localhost'
-        port = 2222
-        server_string = 'tcp:host={0}:port={1}'.format(hostname, port)
         credentials = network.Credentials(unicode(self.ui.editLogin.text()),
                                           unicode(self.ui.editPassword.text()))
-        d = network.do_connect(server_string, credentials)
+        d = network.do_connect(credentials)
         def _ebConnectionFailed(failure):
             self.ui.editPassword.selectAll()
             highlight_background(self.ui.editLogin, QtGui.QColor(255, 128, 128))

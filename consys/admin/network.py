@@ -14,6 +14,7 @@ from consys.common import configuration, app
 
 _config = configuration.register_section('network', 
     {
+        'server-string': 'string()',
         'server-public-key': 'path(default=keys/server.pub)',
     })
 
@@ -103,9 +104,9 @@ _server_public_key = keys.Key.fromFile(_config['server-public-key'])
 
 autoConnection = network.ConnectionAutomaton(_client_factory)
 
-def do_connect(server_string, credentials):
+def do_connect(credentials):
     autoConnection.event('disconnect')
-    autoConnection.server_string = server_string
+    autoConnection.server_string = _config['server-string']
     global _credentials
     _credentials = credentials
     autoConnection.signal_error = True
