@@ -79,10 +79,10 @@ class AdminAvatar(avatar.ConchUser, pb.Root):
                                    network.AMP_CHANNEL_NAME: ampFactory})
 
     def loggedIn(self):
-        pass
+        admin_connected(self)
     
     def loggedOut(self):
-        pass
+        admin_disconnected(self)
 
 
 class StackedTerminalSessionTransport:
@@ -212,11 +212,22 @@ app.startup.connect(on_startup)
 
 client_connected = Signal()
 ''' Is emitted when a client connects.
-@param avatar: Client's avatar
+@param avatar: client's avatar
 @type avatar: ClientAvatar 
 '''
 client_disconnected = Signal()
 ''' Is emitted when a client disconnects.
-@param avatar: Client's avatar
+@param avatar: client's avatar
 @type avatar: ClientAvatar 
+'''
+
+admin_connected = Signal()
+''' Is emitted when an admin connects.
+@param avatar: admin's avatar
+@type avatar: AdminAvatar 
+'''
+admin_disconnected = Signal()
+''' Is emitted when an admin disconnects.
+@param avatar: admin's avatar
+@type avatar: AdminAvatar 
 '''

@@ -16,6 +16,8 @@ class Tracker(pb.Referenceable):
         self.admins = []
         network.client_connected.connect(self.added_client)
         network.client_disconnected.connect(self.removed_client)
+        network.admin_connected.connect(self.added_admin)
+        network.admin_disconnected.connect(self.removed_admin)
         
     def added_client(self, avatar):
         self.clients.append(avatar)
@@ -27,7 +29,7 @@ class Tracker(pb.Referenceable):
         self.clients.remove(avatar)
 
     def removed_admin(self, avatar):
-        self.clients.remove(avatar)
+        self.admins.remove(avatar)
     
     def get_clients(self):
         return self.clients
