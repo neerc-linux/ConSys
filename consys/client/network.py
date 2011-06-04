@@ -49,6 +49,11 @@ class ClientTransport(transport.SSHClientTransport):
         connection = SSHConnection(self.deferred, self.onDisconnect)
         self.requestService(SimplePubkeyUserAuth(username, connection))
 
+    def connectionLost(self, reason):
+        transport.SSHClientTransport.connectionLost(self, reason)
+        if not self.deferred.called:
+            self.deferred.errback(reason)
+
 
 class SimplePubkeyUserAuth(userauth.SSHUserAuthClient):
     
@@ -66,6 +71,8 @@ class SimplePubkeyUserAuth(userauth.SSHUserAuthClient):
         path = _config['client-key']
         return defer.succeed(keys.Key.fromFile(path))
     
+    def getPassword(self):
+        return
 
 class SSHConnection(connection.SSHConnection):
     def __init__(self, deferred, onDisconnect):
