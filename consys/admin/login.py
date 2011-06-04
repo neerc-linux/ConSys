@@ -19,6 +19,8 @@ _log = log.getLogger(__name__)
 class LoginHandler(object):
 
     def on_login(self):
+        self.ui.editLogin.setEnabled(False)
+        self.ui.editPassword.setEnabled(False)
         self.ui.buttonLogin.setEnabled(False)
         hostname = 'localhost'
         port = 2222
@@ -31,6 +33,9 @@ class LoginHandler(object):
             highlight_background(self.ui.editLogin, QtGui.QColor(255, 128, 128))
             highlight_background(self.ui.editPassword, QtGui.QColor(255, 128, 128))
             self.ui.buttonLogin.setEnabled(True)
+            self.ui.editPassword.setEnabled(True)
+            self.ui.editLogin.setEnabled(True)
+            self.ui.editPassword.setFocus()
         def _cbConnected(value):
             global connection
             connection = value
