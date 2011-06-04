@@ -6,13 +6,13 @@ Login dialog code.
 from notify.all import Signal 
 from PyQt4 import QtGui
 
+from twisted.conch import error
+
 from consys.common import configuration
 from consys.common import log
 from consys.common import app
 from consys.admin.login_ui import Ui_LoginDialog
 from consys.admin import network
-from PyQt4.uic.Compiler.qtproxies import QtCore
-import PyQt4
 
 _log = log.getLogger(__name__)
 
@@ -26,7 +26,8 @@ class LoginHandler(object):
                                           unicode(self.ui.editPassword.text()))
         d = network.do_connect(credentials)
         def _ebConnectionFailed(failure):
-            _log.warning(failure)
+            if failure.check(error.UnauthorizedLogin):
+                pass
             self.ui.editPassword.selectAll()
             color = QtGui.QColor(255, 128, 128)
             highlight_background(self.ui.editLogin, color)
