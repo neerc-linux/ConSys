@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'login.ui'
+# Form implementation generated from reading ui file 'consys/admin/login.ui'
 #
-# Created: Sat Jun  4 21:01:17 2011
+# Created: Sat Jun  4 21:27:49 2011
 #      by: PyQt4 UI code generator 4.8.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -32,9 +32,6 @@ class Ui_LoginDialog(object):
         self.labelServerPort = QtGui.QLabel(LoginDialog)
         self.labelServerPort.setObjectName(_fromUtf8("labelServerPort"))
         self.gridLayout.addWidget(self.labelServerPort, 1, 0, 1, 1)
-        self.editServerPort = QtGui.QLineEdit(LoginDialog)
-        self.editServerPort.setObjectName(_fromUtf8("editServerPort"))
-        self.gridLayout.addWidget(self.editServerPort, 1, 1, 1, 1)
         self.labelLogin = QtGui.QLabel(LoginDialog)
         self.labelLogin.setObjectName(_fromUtf8("labelLogin"))
         self.gridLayout.addWidget(self.labelLogin, 2, 0, 1, 1)
@@ -48,6 +45,12 @@ class Ui_LoginDialog(object):
         self.editPassword.setEchoMode(QtGui.QLineEdit.Password)
         self.editPassword.setObjectName(_fromUtf8("editPassword"))
         self.gridLayout.addWidget(self.editPassword, 3, 1, 1, 1)
+        self.spinServerPort = QtGui.QSpinBox(LoginDialog)
+        self.spinServerPort.setMinimum(1)
+        self.spinServerPort.setMaximum(65535)
+        self.spinServerPort.setProperty(_fromUtf8("value"), 2222)
+        self.spinServerPort.setObjectName(_fromUtf8("spinServerPort"))
+        self.gridLayout.addWidget(self.spinServerPort, 1, 1, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout)
         self.widget = QtGui.QWidget(LoginDialog)
         self.widget.setMaximumSize(QtCore.QSize(16777215, 35))
@@ -74,7 +77,6 @@ class Ui_LoginDialog(object):
         self.labelServerAddress.setText(QtGui.QApplication.translate("LoginDialog", "Server", None, QtGui.QApplication.UnicodeUTF8))
         self.editServerAddress.setText(QtGui.QApplication.translate("LoginDialog", "localhost", None, QtGui.QApplication.UnicodeUTF8))
         self.labelServerPort.setText(QtGui.QApplication.translate("LoginDialog", "Server port", None, QtGui.QApplication.UnicodeUTF8))
-        self.editServerPort.setText(QtGui.QApplication.translate("LoginDialog", "2222", None, QtGui.QApplication.UnicodeUTF8))
         self.labelLogin.setText(QtGui.QApplication.translate("LoginDialog", "Login", None, QtGui.QApplication.UnicodeUTF8))
         self.editLogin.setText(QtGui.QApplication.translate("LoginDialog", "admin", None, QtGui.QApplication.UnicodeUTF8))
         self.labelPassword.setText(QtGui.QApplication.translate("LoginDialog", "Password", None, QtGui.QApplication.UnicodeUTF8))

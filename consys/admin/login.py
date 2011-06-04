@@ -3,6 +3,7 @@ Login dialog code.
 @author: Nikita Ofitserov
 '''
 
+from notify.all import Signal 
 from PyQt4 import QtGui
 
 from consys.common import configuration
@@ -17,7 +18,7 @@ class LoginHandler(object):
 
     def on_login(self):
         hostname = self.ui.editServerAddress.text()
-        port = self.ui.editServerPort.text()
+        port = self.ui.spinServerPort.value()
         server_string = 'tcp:host={0}:port={1}'.format(hostname, port)
         credentials = network.Credentials(unicode(self.ui.editLogin.text()),
                                           unicode(self.ui.editPassword.text()))
@@ -30,6 +31,7 @@ class LoginHandler(object):
     
     def on_login_success(self):
         del self.dialog
+        successful()
     
     def on_cancelled(self):
         app.reactor.stop()
@@ -44,5 +46,8 @@ class LoginHandler(object):
         self.dialog.show()
 
 _handler = LoginHandler()
+
+successful = Signal()
+'''Is fired after a successful login attempt'''
 
 app.startup.connect(_handler.on_startup)
