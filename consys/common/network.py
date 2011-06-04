@@ -90,7 +90,6 @@ class ConnectionAutomaton(auto.SimpleAutomaton):
         self.connection = None
         self.deferred = None
         self.server_string = None
-        self.credentials = None
         self.signal_error = False
         self.delay = self.initial_delay
         self.factory = factory

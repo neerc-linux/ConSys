@@ -92,11 +92,12 @@ class SSHConnection(connection.SSHConnection):
 def _cbConnectionLost():
     autoConnection.event('connectionLost')
 
+_credentials = None
 _client_factory = protocol.Factory()
 _client_factory.protocol = lambda: ClientTransport(_server_public_key, 
                                                    autoConnection.deferred,
                                                    _cbConnectionLost,
-                                                   autoConnection.credentials)
+                                                   _credentials)
 
 _server_public_key = keys.Key.fromFile(_config['server-public-key'])
 
@@ -105,7 +106,8 @@ autoConnection = network.ConnectionAutomaton(_client_factory)
 def do_connect(server_string, credentials):
     autoConnection.event('disconnect')
     autoConnection.server_string = server_string
-    autoConnection.credentials = credentials
+    global _credentials
+    _credentials = credentials
     autoConnection.signal_error = True
     autoConnection.event('connect')
     def _ebFailed(failure):
