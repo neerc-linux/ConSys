@@ -5,19 +5,15 @@
 
 from __future__ import unicode_literals 
 
-import os
 import random
 
 from twisted.conch import error
 from twisted.conch.ssh import transport, userauth, connection, keys
 from twisted.internet import defer, reactor, protocol, endpoints
-from twisted.spread import pb
 
 from consys.common import log
 from consys.common import configuration, app
-from consys.common import network
 from consys.common import auto
-from consys.client import root
 
 _config = configuration.register_section('network', 
     {
