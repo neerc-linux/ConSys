@@ -19,6 +19,7 @@ from twisted.conch.ssh import session, keys, factory, userauth, connection
 from twisted.cred import portal
 from twisted.cred.checkers import FilePasswordDB
 from twisted.internet import reactor
+from twisted.internet.endpoints import serverFromString
 from twisted.internet.protocol import connectionDone
 from twisted.python import components
 from twisted.spread import pb
@@ -30,8 +31,7 @@ __all__ = ['on_startup', 'client_connected', 'client_disconnected']
 
 _config = configuration.register_section('network',
      {
-        'bind-address': 'string(default=0.0.0.0)',
-        'port': 'integer(min=1, max=65535, default=2222)',
+        'listen-string': 'string(default=tcp:2222)',
         'server-key': 'path(default=keys/server)',
         'client-public-key': 'path(default=keys/client.pub)',
         'client-user-name': 'string(default=terminal)',
@@ -201,8 +201,9 @@ _portal.registerChecker(
 SSHServerFactory.portal = _portal
 
 def on_startup():
-    reactor.listenTCP(_config['port'], SSHServerFactory(), 
-                      interface=_config['bind-address'])
+    endpoint = serverFromString(reactor, 
+                                _config['listen-string'].encode('utf-8'))
+    endpoint.listen(SSHServerFactory())
 
 app.startup.connect(on_startup)
 
