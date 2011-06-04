@@ -104,82 +104,18 @@ class SSHConnection(connection.SSHConnection):
         return self
         
 
-class ConnectionAutomaton(auto.SimpleAutomaton):
-    _states = ['disconnected', 'connecting', 'cooldown', 'connected', 
-               'cancelled']
-    _start_state = 'disconnected'
-    _transitions = {
-                    ('disconnected', 'connect'): ('connecting', ['doConnect']),
-                    ('disconnected', 'disconnect'): ('disconnected', []),
-                    ('disconnected', 'connectionLost'): ('disconnected', []),
-                    ('connecting', 'connected'): ('connected', ['connected']), 
-                    ('connecting', 'connectionFailed'): ('cooldown', 
-                                                         ['cooldown']), 
-                    ('connecting', 'disconnect'): ('cancelled', []), 
-                    ('cancelled', 'connected'): ('disconnected', 
-                                                 ['connected', 'disconnect']), 
-                    ('cancelled', 'connectionFailed'): ('disconnect', []), 
-                    ('cooldown', 'timer'): ('connecting', ['doConnect']), 
-                    ('cooldown', 'disconnect'): ('disconnected',
-                                                 ['cancelTimer']), 
-                    ('connected', 'connectionLost'): ('connecting',
-                                                      ['doConnect']),
-                    ('connected', 'disconnect'): ('disconnected',
-                                                  ['disconnect']), 
-                }
-    initial_delay = 1.0 # seconds
-    factor = 1.72
-    max_delay = 15.0 # seconds
-    jitter = 0.12
-    
-    def __init__(self):
-        auto.SimpleAutomaton.__init__(self)
-        self.connection = None
-        self.deferred = None
-        self.delay = self.initial_delay
-        
-    def doConnect(self):
-        if self.connection is not None:
-            self.disconnect()
-        self.deferred = defer.Deferred()
-        def _cbConnectionLost():
-            self.event('connectionLost')
-        f = protocol.Factory()
-        f.protocol = lambda: ClientTransport(_server_public_key, self.deferred,
-                                             _cbConnectionLost)
-        endpoint = endpoints.clientFromString(reactor, _config['server-string'])
-        d = endpoint.connect(f)
-        d.addErrback(self.deferred.errback)
-        def _cbConnection(rv):
-            self.event('connected')
-        def _ebConnection(failure):
-            self.event('connectionFailed')
-        self.deferred.addCallbacks(_cbConnection, _ebConnection)
-    
-    def connected(self):
-        self.delay = self.initial_delay
-        self.connection = self.deferred.result
-    
-    def cooldown(self):
-        def _cbTimer():
-            self.event('timer')
-        self.delay = min(self.delay * self.factor, self.max_delay)
-        if self.jitter:
-            self.delay = random.normalvariate(self.delay,
-                                              self.delay * self.jitter)
-        self.timer = reactor.callLater(self.delay, _cbTimer)
-    
-    def disconnect(self):
-        if self.connection is not None:
-            self.connection.transport.loseConnection()
-            self.connection = None        
-    
-    def cancelTimer(self):
-        self.timer.cancel()
+def _cbConnectionLost():
+    autoConnection.event('connectionLost')
+
+_client_factory = protocol.Factory()
+_client_factory.protocol = lambda: ClientTransport(_server_public_key,
+                                                   autoConnection.deferred,
+                                                   _cbConnectionLost)
 
 _server_public_key = keys.Key.fromFile(_config['server-public-key'])
 
-autoConnection = ConnectionAutomaton()
+autoConnection = network.ConnectionAutomaton(_client_factory)
+autoConnection.server_string = _config['server-string']
 
 def on_startup():
     autoConnection.event('connect')
