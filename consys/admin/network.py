@@ -5,15 +5,12 @@
 
 from __future__ import unicode_literals 
 
-import random
-
 from twisted.conch import error
 from twisted.conch.ssh import transport, userauth, connection, keys
-from twisted.internet import defer, reactor, protocol, endpoints
+from twisted.internet import defer, reactor, protocol
 
-from consys.common import log
+from consys.common import log, network
 from consys.common import configuration, app
-from consys.common import auto
 
 _config = configuration.register_section('network', 
     {
@@ -91,91 +88,19 @@ class SSHConnection(connection.SSHConnection):
         connection.SSHConnection.serviceStopped(self)
                 
 
-class ConnectionAutomaton(auto.SimpleAutomaton):
-    _states = ['disconnected', 'connecting', 'cooldown', 'connected', 
-               'cancelled']
-    _start_state = 'disconnected'
-    _transitions = {
-                    ('disconnected', 'connect'): ('connecting', ['doConnect']),
-                    ('disconnected', 'disconnect'): ('disconnected', []),
-                    ('disconnected', 'connectionLost'): ('disconnected', []),
-                    ('connecting', 'connected'): ('connected', ['connected']), 
-                    ('connecting', 'connectionFailed'): ('cooldown', 
-                                                         ['cooldown']), 
-                    ('connecting', 'disconnect'): ('cancelled', []), 
-                    ('cancelled', 'disconnect'): ('cancelled', []),
-                    ('cancelled', 'connected'): ('disconnected', 
-                                                 ['connected', 'disconnect']), 
-                    ('cancelled', 'connectionFailed'): ('disconnected', []), 
-                    ('cooldown', 'timer'): ('connecting', ['doConnect']), 
-                    ('cooldown', 'disconnect'): ('disconnected',
-                                                 ['cancelTimer']), 
-                    ('connected', 'connectionLost'): ('connecting',
-                                                      ['doConnect']),
-                    ('connected', 'disconnect'): ('disconnected',
-                                                  ['disconnect']), 
-                }
-    initial_delay = 1.0 # seconds
-    factor = 1.72
-    max_delay = 15.0 # seconds
-    jitter = 0.12
-    
-    def __init__(self):
-        auto.SimpleAutomaton.__init__(self)
-        self.connection = None
-        self.deferred = None
-        self.server_string = None
-        self.credentials = None
-        self.signal_error = False
-        self.delay = self.initial_delay
-        
-    def doConnect(self):
-        if self.connection is not None:
-            self.disconnect()
-        self.deferred = defer.Deferred()
-        def _cbConnectionLost():
-            self.event('connectionLost')
-        f = protocol.Factory()
-        f.protocol = lambda: ClientTransport(_server_public_key, self.deferred,
-                                             _cbConnectionLost,
-                                             self.credentials)
-        endpoint = endpoints.clientFromString(reactor, self.server_string)
-        d = endpoint.connect(f)
-        d.addErrback(self.deferred.errback)
-        def _cbConnection(rv):
-            self.event('connected')
-            self.signal_error = False
-        def _ebConnection(failure):
-            self.event('connectionFailed')
-            if self.signal_error:
-                self.signal_error = False
-                return failure
-        self.deferred.addCallbacks(_cbConnection, _ebConnection)
-    
-    def connected(self):
-        self.delay = self.initial_delay
-        self.connection = self.deferred.result
-    
-    def cooldown(self):
-        def _cbTimer():
-            self.event('timer')
-        self.delay = min(self.delay * self.factor, self.max_delay)
-        if self.jitter:
-            self.delay = random.normalvariate(self.delay,
-                                              self.delay * self.jitter)
-        self.timer = reactor.callLater(self.delay, _cbTimer)
-    
-    def disconnect(self):
-        if self.connection is not None:
-            self.connection.transport.loseConnection()
-            self.connection = None        
-    
-    def cancelTimer(self):
-        self.timer.cancel()
+
+def _cbConnectionLost():
+    autoConnection.event('connectionLost')
+
+_client_factory = protocol.Factory()
+_client_factory.protocol = lambda: ClientTransport(_server_public_key, 
+                                                   autoConnection.deferred,
+                                                   _cbConnectionLost,
+                                                   autoConnection.credentials)
 
 _server_public_key = keys.Key.fromFile(_config['server-public-key'])
 
-autoConnection = ConnectionAutomaton()
+autoConnection = network.ConnectionAutomaton(_client_factory)
 
 def do_connect(server_string, credentials):
     autoConnection.event('disconnect')
