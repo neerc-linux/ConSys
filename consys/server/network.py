@@ -19,6 +19,7 @@ from twisted.conch.ssh import session, keys, factory, userauth, connection
 from twisted.cred import portal
 from twisted.cred.checkers import FilePasswordDB
 from twisted.internet import reactor
+from twisted.internet.protocol import connectionDone
 from twisted.python import components
 from twisted.spread import pb
 
@@ -67,6 +68,7 @@ class AdminAvatar(avatar.ConchUser, pb.Root):
     def __init__(self, username):
         avatar.ConchUser.__init__(self)
         self.username = username
+        self.transportStack = None
         self.namespace = {
                           'self': self,
                           'reactor': reactor,
@@ -80,10 +82,59 @@ class AdminAvatar(avatar.ConchUser, pb.Root):
         pass
 
 
+class StackedTerminalSessionTransport:
+    '''Allows to switch terminal chained protocols mid-flight.'''
+    def __init__(self, proto, chainedProtocol, avatar, width, height):
+        self.proto = proto
+        self.avatar = avatar
+        self.chainedProtocol = chainedProtocol
+        self.stack = []
+        avatar.transportStack = self
+
+        session = self.proto.session
+
+        class FakeTransport(object):
+            name = "SSH Proto Transport"
+            write = self.chainedProtocol.dataReceived
+            def loseConnection(self):
+                avatar.conn.sendClose(session)
+
+        self.proto.makeConnection(FakeTransport())
+
+        def protoLoseConnection():
+            self.proto.loseConnection()
+
+        class FakeChainedTransport(object):
+            name="Chained Proto Transport"
+            write = self.proto.write
+            loseConnection = staticmethod(protoLoseConnection)
+        self.fakeChainedTransport = FakeChainedTransport()
+
+        self.chainedProtocol.makeConnection(self.fakeChainedTransport)
+
+        # XXX TODO
+        # chainedProtocol is supposed to be an ITerminalTransport,
+        # maybe.  That means perhaps its terminalProtocol attribute is
+        # an ITerminalProtocol, it could be.  So calling terminalSize
+        # on that should do the right thing But it'd be nice to clean
+        # this bit up.
+        self.chainedProtocol.terminalProtocol.terminalSize(width, height)
+
+    def push(self, chainedProtocol):
+        self.stack.append(self.chainedProtocol)
+        chainedProtocol.makeConnection(self.fakeChainedTransport)
+        self.chainedProtocol = chainedProtocol
+        
+    def pop(self):
+        chainedProtocol = self.chainedProtocol
+        self.chainedProtocol = self.stack.pop()
+        chainedProtocol.connectionLost(connectionDone)
+
+
 class AdminTerminalSession(TerminalSession):
     chainedProtocolFactory = lambda self: \
-        insults.ServerProtocol(ColoredManhole, self.original.namespace)
-    
+        insults.ServerProtocol(ColoredManhole, self.original.namespace.copy())
+    transportFactory = StackedTerminalSessionTransport
 
 components.registerAdapter(AdminTerminalSession, AdminAvatar, session.ISession)
 
