@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'consys/admin/login.ui'
 #
-# Created: Sat Jun  4 21:27:49 2011
+# Created: Sat Jun  4 22:13:45 2011
 #      by: PyQt4 UI code generator 4.8.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,7 +17,7 @@ except AttributeError:
 class Ui_LoginDialog(object):
     def setupUi(self, LoginDialog):
         LoginDialog.setObjectName(_fromUtf8("LoginDialog"))
-        LoginDialog.resize(340, 196)
+        LoginDialog.resize(344, 186)
         LoginDialog.setModal(True)
         self.verticalLayout = QtGui.QVBoxLayout(LoginDialog)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
@@ -58,7 +58,7 @@ class Ui_LoginDialog(object):
         self.horizontalLayout = QtGui.QHBoxLayout(self.widget)
         self.horizontalLayout.setContentsMargins(-1, 0, -1, 0)
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
-        spacerItem = QtGui.QSpacerItem(141, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        spacerItem = QtGui.QSpacerItem(145, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
         self.buttonLogin = QtGui.QPushButton(self.widget)
         self.buttonLogin.setObjectName(_fromUtf8("buttonLogin"))
@@ -71,6 +71,11 @@ class Ui_LoginDialog(object):
         self.retranslateUi(LoginDialog)
         QtCore.QObject.connect(self.buttonExit, QtCore.SIGNAL(_fromUtf8("clicked()")), LoginDialog.reject)
         QtCore.QMetaObject.connectSlotsByName(LoginDialog)
+        LoginDialog.setTabOrder(self.editServerAddress, self.spinServerPort)
+        LoginDialog.setTabOrder(self.spinServerPort, self.editLogin)
+        LoginDialog.setTabOrder(self.editLogin, self.editPassword)
+        LoginDialog.setTabOrder(self.editPassword, self.buttonLogin)
+        LoginDialog.setTabOrder(self.buttonLogin, self.buttonExit)
 
     def retranslateUi(self, LoginDialog):
         LoginDialog.setWindowTitle(QtGui.QApplication.translate("LoginDialog", "Login", None, QtGui.QApplication.UnicodeUTF8))

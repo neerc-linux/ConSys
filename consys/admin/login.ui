@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>340</width>
-    <height>196</height>
+    <width>344</width>
+    <height>186</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -105,7 +105,7 @@
         </property>
         <property name="sizeHint" stdset="0">
          <size>
-          <width>141</width>
+          <width>145</width>
           <height>20</height>
          </size>
         </property>
@@ -130,6 +130,14 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>editServerAddress</tabstop>
+  <tabstop>spinServerPort</tabstop>
+  <tabstop>editLogin</tabstop>
+  <tabstop>editPassword</tabstop>
+  <tabstop>buttonLogin</tabstop>
+  <tabstop>buttonExit</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
