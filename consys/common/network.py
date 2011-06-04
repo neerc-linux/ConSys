@@ -23,10 +23,15 @@ class ProtocolChannel(channel.SSHChannel):
                                     remoteWindow, remoteMaxPacket, conn,
                                     data, avatar)
         self.factory = factory
+        self.deferred = defer.Deferred()
+
+    def openFailed(self, reason):
+        self.deferred.errback(reason)
     
     def channelOpen(self, extraData):
         self.protocol = self.factory.buildProtocol(None)
         self.protocol.makeConnection(self)
+        self.deferred.callback(self)
 
     def dataReceived(self, data):
         self.protocol.dataReceived(data)
@@ -44,6 +49,7 @@ class RpcChannel(ProtocolChannel):
     name = RPC_CHANNEL_NAME
 
     def openFailed(self, reason):
+        ProtocolChannel.openFailed(self, reason)
         _log.error('RPC channel opening failed: {0}'.format(reason))
     
     def channelOpen(self, extraData):
@@ -56,6 +62,7 @@ class AmpChannel(ProtocolChannel):
     name = AMP_CHANNEL_NAME
 
     def openFailed(self, reason):
+        ProtocolChannel.openFailed(self, reason)
         _log.error('AMP channel opening failed: {0}'.format(reason))
     
     def channelOpen(self, extraData):
