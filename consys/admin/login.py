@@ -8,7 +8,6 @@ from PyQt4 import QtGui
 
 from twisted.conch import error
 
-from consys.common import configuration
 from consys.common import log
 from consys.common import app
 from consys.admin.login_ui import Ui_LoginDialog
@@ -24,18 +23,35 @@ class LoginHandler(object):
         self.ui.buttonLogin.setEnabled(False)
         credentials = network.Credentials(unicode(self.ui.editLogin.text()),
                                           unicode(self.ui.editPassword.text()))
+        self.do_connect(credentials)
+
+    def do_connect(self, credentials):
         d = network.do_connect(credentials)
         def _ebConnectionFailed(failure):
             if failure.check(error.UnauthorizedLogin):
-                pass
-            self.ui.editPassword.selectAll()
-            color = QtGui.QColor(255, 128, 128)
-            highlight_background(self.ui.editLogin, color)
-            highlight_background(self.ui.editPassword, color)
-            self.ui.buttonLogin.setEnabled(True)
-            self.ui.editPassword.setEnabled(True)
-            self.ui.editLogin.setEnabled(True)
-            self.ui.editPassword.setFocus()
+                self.ui.editPassword.selectAll()
+                color = QtGui.QColor(255, 128, 128)
+                highlight_background(self.ui.editLogin, color)
+                highlight_background(self.ui.editPassword, color)
+                self.ui.buttonLogin.setEnabled(True)
+                self.ui.editPassword.setEnabled(True)
+                self.ui.editLogin.setEnabled(True)
+                self.ui.editPassword.setFocus()
+            else:
+                def _mb_result(button):
+                    if mb.standardButton(button) == QtGui.QMessageBox.Retry:
+                        self.do_connect(credentials)
+                    else:
+                        self.on_cancelled()
+
+                # Avoid garbage collection
+                self.mb = mb = QtGui.QMessageBox()
+                mb.setText('Server unreachable')
+                mb.setStandardButtons(QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Retry)
+                mb.setIcon(QtGui.QMessageBox.Critical)
+                mb.buttonClicked.connect(_mb_result)
+                mb.show()
+
         def _cbConnected(value):
             global connection
             connection = value
