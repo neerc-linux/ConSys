@@ -17,6 +17,7 @@ _log = log.getLogger(__name__)
 class LoginHandler(object):
 
     def on_login(self):
+        self.ui.buttonLogin.setEnabled(False)
         hostname = self.ui.editServerAddress.text()
         port = self.ui.spinServerPort.value()
         server_string = 'tcp:host={0}:port={1}'.format(hostname, port)
@@ -24,8 +25,12 @@ class LoginHandler(object):
                                           unicode(self.ui.editPassword.text()))
         d = network.do_connect(server_string, credentials)
         def _ebConnectionFailed(failure):
+            self.ui.buttonLogin.setEnabled(True)
             pass
         def _cbConnected(value):
+            global connection
+            connection = value
+            _log.debug('Login successful')
             self.dialog.accept()
         d.addCallbacks(_cbConnected, _ebConnectionFailed)
     
@@ -46,6 +51,7 @@ class LoginHandler(object):
         self.dialog.show()
 
 _handler = LoginHandler()
+connection = None
 
 successful = Signal()
 '''Is fired after a successful login attempt'''

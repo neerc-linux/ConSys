@@ -53,6 +53,11 @@ class ClientTransport(transport.SSHClientTransport):
         self.requestService(SimplePasswordUserAuth(username, connection,
                                                    password))
 
+    def connectionLost(self, reason):
+        transport.SSHClientTransport.connectionLost(self, reason)
+        if not self.deferred.called:
+            self.deferred.errback(reason)
+        
 
 class SimplePasswordUserAuth(userauth.SSHUserAuthClient):
 
@@ -61,8 +66,12 @@ class SimplePasswordUserAuth(userauth.SSHUserAuthClient):
     def __init__(self, user, instance, password):
         userauth.SSHUserAuthClient.__init__(self, user, instance)
         self.password = password
+        self.used = False
     
     def getPassword(self, prompt=None):
+        if self.used:
+            return None
+        self.used = True
         return defer.succeed(self.password)
     
 
@@ -94,9 +103,10 @@ class ConnectionAutomaton(auto.SimpleAutomaton):
                     ('connecting', 'connectionFailed'): ('cooldown', 
                                                          ['cooldown']), 
                     ('connecting', 'disconnect'): ('cancelled', []), 
+                    ('cancelled', 'disconnect'): ('cancelled', []),
                     ('cancelled', 'connected'): ('disconnected', 
                                                  ['connected', 'disconnect']), 
-                    ('cancelled', 'connectionFailed'): ('disconnect', []), 
+                    ('cancelled', 'connectionFailed'): ('disconnected', []), 
                     ('cooldown', 'timer'): ('connecting', ['doConnect']), 
                     ('cooldown', 'disconnect'): ('disconnected',
                                                  ['cancelTimer']), 
