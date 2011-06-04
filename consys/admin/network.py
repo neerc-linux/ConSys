@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 from twisted.conch import error
 from twisted.conch.ssh import transport, userauth, connection, keys
-from twisted.internet import defer, reactor, protocol
+from twisted.internet import defer, reactor, protocol, error as ierror
 
 from consys.common import log, network
 from consys.common import configuration, app
@@ -35,6 +35,7 @@ class ClientTransport(transport.SSHClientTransport):
         self.deferred = deferred
         self.onDisconnect = onDisconnect
         self.cred = cred
+        self.authenticator = None
     
     def verifyHostKey(self, hostKey, fingerprint):
         if hostKey != self.knownHostKey.blob():
@@ -48,12 +49,15 @@ class ClientTransport(transport.SSHClientTransport):
         username = self.cred.username.encode('utf-8')
         password = self.cred.password.encode('utf-8')
         connection = SSHConnection(self.deferred, self.onDisconnect)
-        self.requestService(SimplePasswordUserAuth(username, connection,
-                                                   password))
+        self.authenticator = SimplePasswordUserAuth(username, connection,
+                                                    password)
+        self.requestService(self.authenticator)
 
     def connectionLost(self, reason):
         transport.SSHClientTransport.connectionLost(self, reason)
         if not self.deferred.called:
+            if reason.check(ierror.ConnectionDone) and self.authenticator:
+                reason = self.authenticator.failure
             self.deferred.errback(reason)
         
 
@@ -65,9 +69,11 @@ class SimplePasswordUserAuth(userauth.SSHUserAuthClient):
         userauth.SSHUserAuthClient.__init__(self, user, instance)
         self.password = password
         self.used = False
+        self.failure = None
     
     def getPassword(self, prompt=None):
         if self.used:
+            self.failure = error.UnauthorizedLogin('Authentication failed')
             return None
         self.used = True
         return defer.succeed(self.password)
