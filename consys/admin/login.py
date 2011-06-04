@@ -45,7 +45,7 @@ class LoginHandler(object):
                         self.on_cancelled()
 
                 # Avoid garbage collection
-                self.mb = mb = QtGui.QMessageBox()
+                self.dialog.mb = mb = QtGui.QMessageBox(self.dialog)
                 mb.setText('Server unreachable')
                 mb.setStandardButtons(QtGui.QMessageBox.Cancel | QtGui.QMessageBox.Retry)
                 mb.setIcon(QtGui.QMessageBox.Critical)
