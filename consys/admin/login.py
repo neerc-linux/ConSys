@@ -11,6 +11,8 @@ from consys.common import log
 from consys.common import app
 from consys.admin.login_ui import Ui_LoginDialog
 from consys.admin import network
+from PyQt4.uic.Compiler.qtproxies import QtCore
+import PyQt4
 
 _log = log.getLogger(__name__)
 
@@ -18,15 +20,17 @@ class LoginHandler(object):
 
     def on_login(self):
         self.ui.buttonLogin.setEnabled(False)
-        hostname = self.ui.editServerAddress.text()
-        port = self.ui.spinServerPort.value()
+        hostname = 'localhost'
+        port = 2222
         server_string = 'tcp:host={0}:port={1}'.format(hostname, port)
         credentials = network.Credentials(unicode(self.ui.editLogin.text()),
                                           unicode(self.ui.editPassword.text()))
         d = network.do_connect(server_string, credentials)
         def _ebConnectionFailed(failure):
+            self.ui.editPassword.selectAll()
+            highlight_background(self.ui.editLogin, QtGui.QColor(255, 128, 128))
+            highlight_background(self.ui.editPassword, QtGui.QColor(255, 128, 128))
             self.ui.buttonLogin.setEnabled(True)
-            pass
         def _cbConnected(value):
             global connection
             connection = value
@@ -48,7 +52,17 @@ class LoginHandler(object):
         self.ui.buttonLogin.clicked.connect(self.on_login)
         self.dialog.accepted.connect(self.on_login_success)
         self.dialog.rejected.connect(self.on_cancelled)
+        self.ui.editLogin.selectionChanged.connect(self.restore_colors)
+        self.ui.editPassword.selectionChanged.connect(self.restore_colors)
+        self.ui.editLogin.cursorPositionChanged.connect(self.restore_colors)
+        self.ui.editPassword.cursorPositionChanged.connect(self.restore_colors)
+        self.ui.editLogin.oldPalette = None
+        self.ui.editPassword.oldPalette = None
         self.dialog.show()
+
+    def restore_colors(self):
+        restore_background(self.ui.editLogin)
+        restore_background(self.ui.editPassword)
 
 _handler = LoginHandler()
 connection = None
@@ -57,3 +71,14 @@ successful = Signal()
 '''Is fired after a successful login attempt'''
 
 app.startup.connect(_handler.on_startup)
+
+def highlight_background(object, color):
+    object.oldPalette = object.palette()
+    p = QtGui.QPalette(object.oldPalette)
+    p.setColor(QtGui.QPalette.Active, QtGui.QPalette.Base, color)
+    object.setPalette(p)
+
+def restore_background(object):
+    if object.oldPalette is not None:
+        object.setPalette(object.oldPalette)
+        object.oldPalette = None
