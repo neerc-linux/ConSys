@@ -18,9 +18,7 @@ from twisted.conch.manhole_ssh import TerminalSession
 from twisted.conch.ssh import session, keys, factory, userauth, connection
 from twisted.cred import portal
 from twisted.cred.checkers import FilePasswordDB
-from twisted.internet import reactor
-from twisted.internet.endpoints import serverFromString
-from twisted.internet.protocol import connectionDone
+from twisted.internet import reactor, protocol, endpoints
 from twisted.python import components
 from twisted.spread import pb
 
@@ -128,7 +126,7 @@ class StackedTerminalSessionTransport:
     def pop(self):
         chainedProtocol = self.chainedProtocol
         self.chainedProtocol = self.stack.pop()
-        chainedProtocol.connectionLost(connectionDone)
+        chainedProtocol.connectionLost(protocol.connectionDone)
 
 
 class AdminTerminalSession(TerminalSession):
@@ -201,8 +199,8 @@ _portal.registerChecker(
 SSHServerFactory.portal = _portal
 
 def on_startup():
-    endpoint = serverFromString(reactor, 
-                                _config['listen-string'].encode('utf-8'))
+    endpoint = endpoints.serverFromString(reactor, 
+          _config['listen-string'].encode('utf-8'))
     endpoint.listen(SSHServerFactory())
 
 app.startup.connect(on_startup)

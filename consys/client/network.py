@@ -10,7 +10,7 @@ import random
 
 from twisted.conch import error
 from twisted.conch.ssh import transport, userauth, connection, keys
-from twisted.internet import defer, protocol, reactor
+from twisted.internet import defer, reactor, protocol, endpoints
 from twisted.spread import pb
 
 from consys.common import log
@@ -21,8 +21,7 @@ from consys.client import root
 
 _config = configuration.register_section('network', 
     {
-        'server-address': 'string()',
-        'port': 'integer(min=1, max=65535, default=2222)',
+        'server-string': 'string()',
         'client-key': 'path(default=keys/client)',
         'server-public-key': 'path(default=keys/server.pub)',
         'client-user-name': 'string(default=terminal)',
@@ -145,10 +144,11 @@ class ConnectionAutomaton(auto.SimpleAutomaton):
         self.deferred = defer.Deferred()
         def _cbConnectionLost():
             self.event('connectionLost')
-        creator = protocol.ClientCreator(reactor, ClientTransport,
-                                         _server_public_key, self.deferred,
-                                         _cbConnectionLost)
-        d = creator.connectTCP(_config['server-address'], _config['port'])
+        f = protocol.Factory()
+        f.protocol = lambda: ClientTransport(_server_public_key, self.deferred,
+                                             _cbConnectionLost)
+        endpoint = endpoints.clientFromString(reactor, _config['server-string'])
+        d = endpoint.connect(f)
         d.addErrback(self.deferred.errback)
         def _cbConnection(rv):
             self.event('connected')
