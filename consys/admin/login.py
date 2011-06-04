@@ -26,9 +26,11 @@ class LoginHandler(object):
                                           unicode(self.ui.editPassword.text()))
         d = network.do_connect(credentials)
         def _ebConnectionFailed(failure):
+            _log.warning(failure)
             self.ui.editPassword.selectAll()
-            highlight_background(self.ui.editLogin, QtGui.QColor(255, 128, 128))
-            highlight_background(self.ui.editPassword, QtGui.QColor(255, 128, 128))
+            color = QtGui.QColor(255, 128, 128)
+            highlight_background(self.ui.editLogin, color)
+            highlight_background(self.ui.editPassword, color)
             self.ui.buttonLogin.setEnabled(True)
             self.ui.editPassword.setEnabled(True)
             self.ui.editLogin.setEnabled(True)
