@@ -37,17 +37,20 @@ class Terminal(persistent.Base):
                ')>'.format(self.id, 'online' if self.client else 'offline')
     
     def connect(self, client):
-        if self.client:
+        if self.is_online():
             raise StateError('Client {0} cannot connect to {1}'.format(client,
                                                                        self))
         self.client = client
         client.terminalId = self.id
     
     def disconnect(self):
-        if not self.client:
+        if not self.is_online():
             raise StateError('Terminal {0} cannot be disconnected'.format(self))
         self.client.terminalId = None
         self.client = None
+    
+    def is_online(self):
+        return self.client is not None
 
     
 class Manager(object):
