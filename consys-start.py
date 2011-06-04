@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 import sys
 
-valid_actions = ['client', 'server']
+valid_actions = ['client', 'server', 'admin']
 
 def choose_by_name(name):
     for a in valid_actions:
