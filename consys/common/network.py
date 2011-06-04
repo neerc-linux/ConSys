@@ -104,6 +104,7 @@ class ConnectionAutomaton(auto.SimpleAutomaton):
         def _cbConnection(rv):
             self.event('connected')
             self.signal_error = False
+            return rv
         def _ebConnection(failure):
             self.event('connectionFailed')
             if self.signal_error:

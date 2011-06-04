@@ -82,7 +82,7 @@ class SSHConnection(connection.SSHConnection):
     def serviceStarted(self):
         connection.SSHConnection.serviceStarted(self)
         _log.info('Authentication successful')
-        self.deferred.callback(None)
+        self.deferred.callback(self)
         
     def serviceStopped(self):
         self.onDisconnect()
