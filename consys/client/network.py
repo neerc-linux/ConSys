@@ -170,8 +170,9 @@ class ConnectionAutomaton(auto.SimpleAutomaton):
         self.timer = reactor.callLater(self.delay, _cbTimer)
     
     def disconnect(self):
-        self.connection.transport.loseConnection()
-        self.connection = None        
+        if self.connection is not None:
+            self.connection.transport.loseConnection()
+            self.connection = None        
     
     def cancelTimer(self):
         self.timer.cancel()
