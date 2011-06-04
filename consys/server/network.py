@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import base64
 import hashlib
+import functools
 
 from zope.interface import implements
 from notify.all import Signal
@@ -24,6 +25,7 @@ from twisted.spread import pb
 
 from consys.common import log
 from consys.common import configuration, network, app
+from consys.server import ampserver
 
 __all__ = ['on_startup', 'client_connected', 'client_disconnected']
 
@@ -71,7 +73,10 @@ class AdminAvatar(avatar.ConchUser, pb.Root):
                           'self': self,
                           'reactor': reactor,
                           }
-        self.channelLookup.update({'session': session.SSHSession})
+        ampFactory = functools.partial(network.AmpChannel, 
+                                       factory=ampserver.factory)
+        self.channelLookup.update({'session': session.SSHSession,
+                                   network.AMP_CHANNEL_NAME: ampFactory})
 
     def loggedIn(self):
         pass

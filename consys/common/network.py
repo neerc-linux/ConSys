@@ -30,6 +30,13 @@ class ProtocolChannel(channel.SSHChannel):
 
     def dataReceived(self, data):
         self.protocol.dataReceived(data)
+        
+    # TODO: Add new IAddress implementation for SSH channels
+    def getPeer(self):
+        return 'SSH:{0}'.format(self.conn.transport.transport.getPeer())
+
+    def getHost(self):
+        return 'SSH:{0}'.format(self.conn.transport.transport.getHost())
 
 RPC_CHANNEL_NAME = b'rpc@consys'
 

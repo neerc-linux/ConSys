@@ -22,7 +22,7 @@ def run():
         from consys.common import qt4reactor
         qt4reactor.install()
         from consys.common import app
-        from consys.admin import login
+        from consys.admin import login, ampclient
         app.startup()
         app.dispatch_loop()
         _log.info('Terminating ConSys admin...')
