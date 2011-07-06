@@ -41,7 +41,7 @@ class SimplePubkeyUserAuth(userauth.SSHUserAuthClient):
     preferredOrder = [b'publickey']
 
     def __init__(self, user, instance):
-        userauth.SSHUserAuthClient(user, instance)
+        userauth.SSHUserAuthClient.__init__(self, user, instance)
         self.failure = None
 
     def getPublicKey(self):
