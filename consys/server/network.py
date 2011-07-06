@@ -40,26 +40,36 @@ _config = configuration.register_section('network',
 _log = log.getLogger(__name__)
 
 class ClientAvatar(avatar.ConchUser, pb.Root):
+    CONNECT_DELAY = 0.25
 
     def __init__(self):
         avatar.ConchUser.__init__(self)
         self.terminalId = None
         self.rpcFactory = pb.PBServerFactory(self)
+        self.connected = False
 
     def __repr__(self):
         return '<ClientAvatar(terminalID: {0})>'.format(self.terminalId)
 
     def loggedIn(self):
+        self.timer = reactor.callLater(self.CONNECT_DELAY, self.on_timeout)
         channel = network.RpcChannel(factory=self.rpcFactory)
         self.conn.openChannel(channel)
-    
+
+    def on_timeout(self):
+        _log.warning('Client has not finished connecting in time')
+        self.conn.transport.loseConnection()
+
     def remote_set_mind(self, mind):
+        self.timer.cancel()
         self.mind = mind
         client_connected(self)
+        self.connected = True
         _log.info('RPC connection ready')    
     
     def loggedOut(self):
-        client_disconnected(self)
+        if self.connected:
+            client_disconnected(self)
         
 
 class AdminAvatar(avatar.ConchUser, pb.Root):
