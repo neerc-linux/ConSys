@@ -39,7 +39,11 @@ class ClientTransport(network.SSHClientTransport):
 class SimplePubkeyUserAuth(userauth.SSHUserAuthClient):
     
     preferredOrder = [b'publickey']
-                
+
+    def __init__(self, user, instance):
+        userauth.SSHUserAuthClient(user, instance)
+        self.failure = None
+
     def getPublicKey(self):
         path = _config['client-key']
         if not os.path.exists(path) or self.lastPublicKey:
