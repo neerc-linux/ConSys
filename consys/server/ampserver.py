@@ -30,7 +30,8 @@ class AmpServerProtocol(amp.AMP):
             terminal = hw.manager.terminals[id]
         except KeyError:
             raise admin.NoSuchObjectError('Terminal {0} not found'.format(id))
-        return {b'name': terminal.name, b'online': terminal.is_online()}
+        return {b'name': terminal.name.encode('utf-8'),
+                b'online': terminal.is_online()}
     
     @admin.ShutdownTerminal.responder
     def shutdown_terminal(self, id):
