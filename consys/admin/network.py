@@ -6,11 +6,12 @@
 from __future__ import unicode_literals 
 
 from twisted.conch import error
-from twisted.conch.ssh import transport, userauth, connection, keys
-from twisted.internet import defer, reactor, protocol, error as ierror
+from twisted.conch.ssh import userauth, connection, keys
+from twisted.internet import defer, protocol
 
 from consys.common import log, network
 from consys.common import configuration, app
+
 
 _config = configuration.register_section('network', 
     {
@@ -28,37 +29,16 @@ class Credentials(object):
         self.password = password
 
 
-class ClientTransport(transport.SSHClientTransport):
-    ''' An initial SSH transport, responsible for the encryption. '''
+class ClientTransport(network.SSHClientTransport):
     def __init__(self, knownHostKey, deferred, onDisconnect, cred):
-        self.knownHostKey = knownHostKey
-        self.deferred = deferred
-        self.onDisconnect = onDisconnect
+        network.SSHClientTransport.__init__(self, knownHostKey, deferred,
+                                            onDisconnect, SSHConnection)
         self.cred = cred
-        self.authenticator = None
     
-    def verifyHostKey(self, hostKey, fingerprint):
-        if hostKey != self.knownHostKey.blob():
-            _log.warning('invalid host key fingerprint:'
-                         ' {0}'.format(fingerprint))
-            return defer.fail(error.ConchError('Invalid host key'))
-        _log.info('valid host key fingerprint: {0}'.format(fingerprint))
-        return defer.succeed(True) 
-
-    def connectionSecure(self):
+    def getAuthenticator(self, connection):
         username = self.cred.username.encode('utf-8')
         password = self.cred.password.encode('utf-8')
-        connection = SSHConnection(self.deferred, self.onDisconnect)
-        self.authenticator = SimplePasswordUserAuth(username, connection,
-                                                    password)
-        self.requestService(self.authenticator)
-
-    def connectionLost(self, reason):
-        transport.SSHClientTransport.connectionLost(self, reason)
-        if not self.deferred.called:
-            if reason.check(ierror.ConnectionDone) and self.authenticator:
-                reason = self.authenticator.failure
-            self.deferred.errback(reason)
+        return SimplePasswordUserAuth(username, connection, password)
         
 
 class SimplePasswordUserAuth(userauth.SSHUserAuthClient):
@@ -89,11 +69,10 @@ class SSHConnection(connection.SSHConnection):
         connection.SSHConnection.serviceStarted(self)
         _log.info('Authentication successful')
         self.deferred.callback(self)
-        
+
     def serviceStopped(self):
         self.onDisconnect()
         connection.SSHConnection.serviceStopped(self)
-                
 
 
 def _cbConnectionLost():
@@ -119,7 +98,7 @@ def do_connect(credentials):
     autoConnection.event('connect')
     def _ebFailed(failure):
         autoConnection.event('disconnect')
-        _log.warning('Connection failed')
+        _log.warning('Connection failed: {0}'.format(failure))
         return failure
     return autoConnection.deferred.addErrback(_ebFailed)
 

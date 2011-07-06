@@ -7,8 +7,9 @@ from __future__ import unicode_literals
 
 import random
 
-from twisted.conch.ssh import channel
-from twisted.internet import defer, endpoints, reactor
+from twisted.conch.ssh import channel, transport
+from twisted.internet import defer, endpoints, reactor, error
+from twisted.python.failure import Failure
 
 from consys.common import log, auto
 
@@ -24,6 +25,48 @@ class InvalidHostKey(Exception):
     def __str__(self):
         return "Invalid host key '{0}', expecting that '{1}' has " \
             "host key '{2}'".format(self.offendingKey, self.host, self.validKey)
+
+
+class SSHClientTransport(transport.SSHClientTransport):
+    ''' An initial SSH transport, responsible for the encryption. '''
+    def __init__(self, knownHostKey, deferred, onDisconnect, connectionFactory):
+        self.knownHostKey = knownHostKey
+        self.deferred = deferred
+        self.onDisconnect = onDisconnect
+        self.connectionFactory = connectionFactory
+        self.authenticator = None
+
+    def verifyHostKey(self, hostKey, fingerprint):
+        if hostKey != self.knownHostKey.blob():
+            host = self.transport.getPeer()
+            _log.warning('invalid host key fingerprint:'
+                         ' {0}'.format(fingerprint))
+            validFingerprint = self.knownHostKey.fingerprint()
+            self.failure = Failure(InvalidHostKey(host, fingerprint,
+                                                     validFingerprint))
+            return defer.fail(self.failure)
+        _log.info('valid host key fingerprint: {0}'.format(fingerprint))
+        return defer.succeed(True)
+
+    def getAuthenticator(self, connection):
+        ''' To be overridden in subclasses. '''
+        return None
+
+    def connectionSecure(self):
+        connection = self.connectionFactory(self.deferred, self.onDisconnect)
+        self.authenticator = self.getAuthenticator(connection)
+        self.requestService(self.authenticator)
+
+    def connectionLost(self, reason):
+        transport.SSHClientTransport.connectionLost(self, reason)
+        if not self.deferred.called:
+            if reason.check(error.ConnectionDone):
+                if self.authenticator:
+                    if self.authenticator.failure:
+                        reason = self.authenticator.failure
+                elif self.failure:
+                    reason = self.failure
+            self.deferred.errback(reason)
 
 
 class ProtocolChannel(channel.SSHChannel):

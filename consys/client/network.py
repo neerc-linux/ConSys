@@ -7,8 +7,7 @@ from __future__ import unicode_literals
 
 import os
 
-from twisted.conch import error
-from twisted.conch.ssh import transport, userauth, connection, keys
+from twisted.conch.ssh import userauth, connection, keys
 from twisted.internet import defer, protocol
 from twisted.spread import pb
 
@@ -27,30 +26,14 @@ _config = configuration.register_section('network',
 
 _log = log.getLogger(__name__)
 
-class ClientTransport(transport.SSHClientTransport):
-    ''' '''
+class ClientTransport(network.SSHClientTransport):
     def __init__(self, knownHostKey, deferred, onDisconnect):
-        self.knownHostKey = knownHostKey
-        self.deferred = deferred
-        self.onDisconnect = onDisconnect
-    
-    def verifyHostKey(self, hostKey, fingerprint):
-        if hostKey != self.knownHostKey.blob():
-            _log.warning('invalid host key fingerprint:'
-                         ' {0}'.format(fingerprint))
-            return defer.fail(error.ConchError('Invalid host key'))
-        _log.info('valid host key fingerprint: {0}'.format(fingerprint))
-        return defer.succeed(True) 
+        network.SSHClientTransport.__init__(self, knownHostKey, deferred,
+                                            onDisconnect, SSHConnection)
 
-    def connectionSecure(self):
+    def getAuthenticator(self, connection):
         username = _config['client-user-name'].encode('utf-8')
-        connection = SSHConnection(self.deferred, self.onDisconnect)
-        self.requestService(SimplePubkeyUserAuth(username, connection))
-
-    def connectionLost(self, reason):
-        transport.SSHClientTransport.connectionLost(self, reason)
-        if not self.deferred.called:
-            self.deferred.errback(reason)
+        return SimplePubkeyUserAuth(username, connection)
 
 
 class SimplePubkeyUserAuth(userauth.SSHUserAuthClient):
