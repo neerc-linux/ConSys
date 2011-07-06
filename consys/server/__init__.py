@@ -28,7 +28,8 @@ def run():
             _log.info('Configuration file: {0}'.format(configuration.filename()))
             _log.info('Initializing ConSys server daemon...')
             from consys.common import app
-            from consys.server import network, persistent, hw, connections
+            from consys.server import network, persistent, hw, connections, \
+                ampserver
             app.startup()
             app.dispatch_loop()
             _log.info('Terminating ConSys server daemon...')

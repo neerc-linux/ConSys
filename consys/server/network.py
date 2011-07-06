@@ -25,7 +25,6 @@ from twisted.spread import pb
 
 from consys.common import log
 from consys.common import configuration, network, app
-from consys.server import ampserver
 
 __all__ = ['on_startup', 'client_connected', 'client_disconnected']
 
@@ -73,10 +72,10 @@ class AdminAvatar(avatar.ConchUser, pb.Root):
                           'self': self,
                           'reactor': reactor,
                           }
-        ampFactory = functools.partial(network.AmpChannel, 
-                                       factory=ampserver.factory)
-        self.channelLookup.update({'session': session.SSHSession,
-                                   network.AMP_CHANNEL_NAME: ampFactory})
+        self.register_channel('session', session.SSHSession)
+
+    def register_channel(self, name, factory):
+        self.channelLookup[name] = factory
 
     def loggedIn(self):
         admin_connected(self)
