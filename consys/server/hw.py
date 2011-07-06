@@ -74,7 +74,7 @@ class Manager(object):
     @inlineCallbacks
     def on_client_connection(self, avatar):
         terminal_id = yield avatar.mind.callRemote(b'get_terminal_id')
-        if terminal_id is None:
+        if terminal_id is None or terminal_id not in self.terminals:
             terminal = yield self.create_terminal()
             yield avatar.mind.callRemote(b'set_terminal_id', terminal.id)
         else:
