@@ -14,6 +14,18 @@ from consys.common import log, auto
 
 _log = log.getLogger(__name__)
 
+class InvalidHostKey(Exception):
+    def __init__(self, host, offendingKey, validKey):
+        Exception.__init__(self, host, offendingKey, validKey)
+        self.host = host
+        self.offendingKey = offendingKey
+        self.validKey = validKey
+
+    def __str__(self):
+        return "Invalid host key '{0}', expecting that '{1}' has " \
+            "host key '{2}'".format(self.offendingKey, self.host, self.validKey)
+
+
 class ProtocolChannel(channel.SSHChannel):
     ''' General channel for running protocols over SSH. '''
     def __init__(self, factory, localWindow = 0, localMaxPacket = 0,
