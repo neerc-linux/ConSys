@@ -79,13 +79,12 @@ class ConnectionAutomaton(auto.SimpleAutomaton):
                     ('disconnected', 'disconnect'): ('disconnected', []),
                     ('disconnected', 'connectionLost'): ('disconnected', []),
                     ('connecting', 'connected'): ('connected', ['connected']), 
-                    ('connecting', 'connectionFailed'): ('cooldown', 
-                                                         ['cooldown']), 
-                    ('connecting', 'disconnect'): ('cancelled', []), 
+                    ('connecting', 'connectionLost'): ('cooldown',
+                                                       ['cooldown']),
+                    ('connecting', 'disconnect'): ('cancelled', []),
                     ('cancelled', 'disconnect'): ('cancelled', []),
-                    ('cancelled', 'connected'): ('disconnected', 
+                    ('cancelled', 'connected'): ('disconnected',
                                                  ['connected', 'disconnect']), 
-                    ('cancelled', 'connectionFailed'): ('disconnected', []), 
                     ('cancelled', 'connectionLost'): ('disconnected', []),
                     ('cooldown', 'timer'): ('connecting', ['doConnect']), 
                     ('cooldown', 'disconnect'): ('disconnected',
@@ -121,7 +120,7 @@ class ConnectionAutomaton(auto.SimpleAutomaton):
             self.signal_error = False
             return rv
         def _ebConnection(failure):
-            self.event('connectionFailed')
+            self.event('connectionLost')
             if self.signal_error:
                 self.signal_error = False
                 return failure
