@@ -13,7 +13,7 @@ setup(
             'consys-admin = consys.admin:run',
         ]
     },
-    required_installs=['consys-common=={0}'.format(version)],
+    install_requires=['consys-common=={0}'.format(version)],
     author="NEERC Linux group",
     author_email="acm-neerc@googlegroups.com"
 )
