@@ -4,7 +4,7 @@
 
 from twisted.spread import pb
 
-from consys.server import log
+from consys.common import log
 from consys.server import network
 
 _log = log.getLogger(__name__)

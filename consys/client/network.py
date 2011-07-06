@@ -6,17 +6,15 @@
 from __future__ import unicode_literals 
 
 import os
-import random
 
 from twisted.conch import error
 from twisted.conch.ssh import transport, userauth, connection, keys
-from twisted.internet import defer, reactor, protocol, endpoints
+from twisted.internet import defer, protocol
 from twisted.spread import pb
 
 from consys.common import log
 from consys.common import configuration, app
 from consys.common import network
-from consys.common import auto
 from consys.client import root
 
 _config = configuration.register_section('network', 
@@ -81,13 +79,17 @@ class SSHConnection(connection.SSHConnection):
         self.onDisconnect = onDisconnect
     
     def serviceStarted(self):
-        connection.SSHConnection.serviceStarted(self)
-        _log.info('Authentication successful')
-        self.mind = root.Root()
-        self.rpcFactory = pb.PBClientFactory()
-        rpcRoot = self.rpcFactory.getRootObject()
-        rpcRoot.addCallback(self.initRpc)
-        rpcRoot.addErrback(self.deferred.errback)
+        try:
+            connection.SSHConnection.serviceStarted(self)
+            _log.info('Authentication successful')
+            self.mind = root.Root()
+            self.rpcFactory = pb.PBClientFactory()
+            rpcRoot = self.rpcFactory.getRootObject()
+            rpcRoot.addCallback(self.initRpc)
+            rpcRoot.addErrback(self.deferred.errback)
+        except Exception:
+            _log.exception('Cannot start SSHConnection service')
+            self.transport.loseConnection()
         
     def serviceStopped(self):
         self.onDisconnect()

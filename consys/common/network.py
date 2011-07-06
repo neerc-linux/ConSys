@@ -86,6 +86,7 @@ class ConnectionAutomaton(auto.SimpleAutomaton):
                     ('cancelled', 'connected'): ('disconnected', 
                                                  ['connected', 'disconnect']), 
                     ('cancelled', 'connectionFailed'): ('disconnected', []), 
+                    ('cancelled', 'connectionLost'): ('disconnected', []),
                     ('cooldown', 'timer'): ('connecting', ['doConnect']), 
                     ('cooldown', 'disconnect'): ('disconnected',
                                                  ['cancelTimer']), 
