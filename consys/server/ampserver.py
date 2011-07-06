@@ -9,7 +9,7 @@ from twisted.protocols import amp
 from twisted.internet import protocol
 from twisted.internet.defer import returnValue, inlineCallbacks
 
-from consys.common import app
+from consys.common import app, network as common_network
 from consys.common.ampi import admin
 from consys.common.network import AMP_CHANNEL_NAME
 from consys.server import hw, network
@@ -55,7 +55,7 @@ def on_startup():
     network.admin_connected.connect(on_admin_connected)
 
 def on_admin_connected(avatar):
-    ampFactory = functools.partial(network.AmpChannel, factory=factory)
+    ampFactory = functools.partial(common_network.AmpChannel, factory=factory)
     avatar.register_channel(AMP_CHANNEL_NAME, ampFactory)
 
 app.startup.connect(on_startup)
