@@ -75,6 +75,7 @@ class SimplePubkeyUserAuth(userauth.SSHUserAuthClient):
 class SSHConnection(connection.SSHConnection):
     def __init__(self, deferred, onDisconnect):
         connection.SSHConnection.__init__(self)
+        self.rpcFactory = pb.PBClientFactory()
         self.deferred = deferred
         self.onDisconnect = onDisconnect
     
@@ -83,7 +84,6 @@ class SSHConnection(connection.SSHConnection):
             connection.SSHConnection.serviceStarted(self)
             _log.info('Authentication successful')
             self.mind = root.Root()
-            self.rpcFactory = pb.PBClientFactory()
             rpcRoot = self.rpcFactory.getRootObject()
             rpcRoot.addCallback(self.initRpc)
             rpcRoot.addErrback(self.deferred.errback)
