@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import signal
 
-import lockfile
+#import lockfile
 
 from consys.common import log
 from consys.common import configuration

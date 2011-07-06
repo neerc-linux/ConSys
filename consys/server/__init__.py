@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 import signal
 
-import lockfile
+#import lockfile
 
 from consys.common import log
 from consys.common import configuration
@@ -35,4 +35,4 @@ def run():
             _log.info('Terminating ConSys server daemon...')
         except Exception:
             _log.exception('Unhandled exception in main thread, exiting')
-            
+
