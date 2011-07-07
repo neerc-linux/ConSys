@@ -37,11 +37,14 @@ Base = DBObject
 ready = Signal()
 '''Is emitted when the database becomes available'''
 
-def on_startup():
+def register_classes(*args):
+    Registry.register(*args)
+
+def _on_startup():
     parsed_url = urlparse(_config['db-url'])
     driver, args = _drivers[parsed_url.scheme](parsed_url)
     Registry.DBPOOL = adbapi.ConnectionPool(driver, **args)
     InteractionBase.LOG = True
     ready()
 
-app.startup.connect(on_startup)
+app.startup.connect(_on_startup)

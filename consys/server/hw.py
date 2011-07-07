@@ -27,8 +27,10 @@ class Terminal(persistent.Base):
     Table structure:
       id :: INTEGER, primary_key
       name :: TEXT
+      workstation_id :: INTEGER, can be NULL
     '''
     TABLENAME = 'terminals'
+    BELONGS_TO = ['workstation']
 
     def __init__(self, **kwargs):
         persistent.Base.__init__(self, **kwargs)
@@ -54,7 +56,26 @@ class Terminal(persistent.Base):
     def is_online(self):
         return self.client is not None
 
-    
+
+class Workstation(persistent.Base):
+    '''
+    Represents a workstation (logical team working place).
+
+    Table structure:
+      id :: INTEGER, primary_key
+      name :: TEXT
+    '''
+    TABLENAME = 'workstations'
+    HASONE = ['terminal']
+
+    def __init__(self, **kwargs):
+        persistent.Base.__init__(self, **kwargs)
+
+    def __repr__(self):
+        return '<Workstation(id: {0}, terminal: {1}'\
+               ')>'.format(self.id, self.terminal)
+
+
 class Manager(object):
     '''
     Manages all hardware, keeping track of network events.
@@ -73,6 +94,15 @@ class Manager(object):
         _log.debug('Created terminal {0}'.format(terminal.id))
         new_terminal(terminal.id)
         returnValue(terminal)
+
+    @inlineCallbacks
+    def create_workstation(self, name):
+        workstation = Workstation(name=name)
+        workstation = yield workstation.save()
+        self.workstations[workstation.id] = workstation
+        _log.debug('Created workstation {0}'.format(workstation.id))
+        new_workstation(workstation.id)
+        returnValue(workstation)
 
     @inlineCallbacks
     def on_client_connection(self, avatar):
@@ -96,11 +126,20 @@ class Manager(object):
     
     @inlineCallbacks
     def on_db_ready(self):
+        def dictify(ls):
+            return dict(map(lambda e: (e.id, e), ls))
         ts = yield Terminal.all()
-        self.terminals = dict(map(lambda t: (t.id, t), ts))
+        self.terminals = dictify(ts)
         _log.info('Loaded {0} terminals from DB'.format(len(self.terminals)))
         _log.debug('Terminals: {0}'.format(self.terminals))
+        ws = yield Workstation.all()
+        self.workstations = dictify(ws)
+        _log.info('Loaded {0} workstations from '
+                  'DB'.format(len(self.workstations)))
+        _log.debug('Workstations: {0}'.format(self.workstations))
 
+
+persistent.register_classes(Terminal, Workstation)
 
 new_terminal = Signal()
 '''Is called when a new terminal is added.
@@ -118,6 +157,16 @@ terminal_status_updated = Signal()
 @type id: int
 @param online: True if the terminal is online now
 @type online: bool
+'''
+new_workstation = Signal()
+'''Is called when a new workstation is added.
+@param id: New workstation id
+@type id: int
+'''
+workstation_removed = Signal()
+'''Is called when a workstation is removed.
+@param id: Removed workstation id
+@type id: int
 '''
 
 manager = Manager()
