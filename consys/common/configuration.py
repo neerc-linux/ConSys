@@ -61,7 +61,7 @@ _validator.functions['path'] = _validate_path
 def filename():
     return _configpath
 
-def get_config(section):
+def get_config(section=None):
     if _config is not None:
         if section is None:
             return _config
