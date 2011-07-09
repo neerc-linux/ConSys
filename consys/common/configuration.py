@@ -19,21 +19,30 @@ _log = log.getLogger(__name__)
 
 
 _parser = argparse.ArgumentParser()
-_parser.add_argument('-w', '--directory', default=os.getcwd(),
-                     help='Working directory (default: current)')
-_parser.add_argument('-c', '--config', default='config.ini',
-                     help='Configuration file path (absolute or relative '
-                     'to working directory) (default: %(default)s)')
+_parser.add_argument('-f', dest='daemonise', default=True, action='store_false',
+                     help='do not daemonise')
+_parser.add_argument('-c', '--config', default='/etc/consys/consys.conf',
+                     help='configuration file path (must be absolute in daemon mode) (default: %(default)s)')
 _args = _parser.parse_args()
 
-_workingdir = os.path.abspath(_args.directory)
-_filename = os.path.join(_workingdir, _args.config)
+_filepath = _args.config
+
+if _args.daemonise:
+    if not os.path.isabs(_filepath):
+        _log.critical('In daemon mode config path must be absolute. Exiting.')
+        exit(1)
+    os.chdir('/')
+
+_workingdir = os.getcwd()
+_configpath = os.path.join(_workingdir, _filepath)
 
 _configspec = ConfigObj(_inspec=True, infile={})
-_config = ConfigObj(infile=os.path.join(_workingdir, _filename),
+_config = ConfigObj(infile=_configpath, file_error=True,
                     configspec=_configspec)
 _validator = Validator()
 _reload_handlers = []
+
+_config['daemonise'] = _args.daemonise
 
 
 def _validate_path(value):
@@ -41,17 +50,16 @@ def _validate_path(value):
     Check that supplied value is a path, normalise it
     and make absolute (relative to working dir)
     '''
+    if value is None:
+        return None
     if not isinstance(value, basestring):
         raise VdtTypeError(value)
     return os.path.normpath(os.path.join(_workingdir, value))
 _validator.functions['path'] = _validate_path
 
 
-def workingdir():
-    return _workingdir
-
 def filename():
-    return _filename
+    return _configpath
 
 def get_config(section):
     if _config is not None:

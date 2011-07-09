@@ -7,6 +7,8 @@ Logging wrapper.
 
 from __future__ import unicode_literals
 
+import os.path
+
 import logging
 import logging.handlers
 
@@ -14,6 +16,7 @@ import logging.handlers
 getLogger = logging.getLogger
 
 _root_log = logging.getLogger()
+_root_log.addHandler(logging.NullHandler()) # Suppress stupid warnings
 _root_log.setLevel(logging.DEBUG)
 
 _stderr_formatter = logging.Formatter(fmt='%(levelname)s: %(message)s')
@@ -22,7 +25,6 @@ _log_stderr.setLevel(logging.ERROR)
 _log_stderr.setFormatter(_stderr_formatter)
 logging.getLogger('consys.common.configuration').addHandler(_log_stderr)
 
-
 def init(filename=None):
     from consys.common import daemonise
     from consys.common import configuration
@@ -30,11 +32,13 @@ def init(filename=None):
     config = configuration.register_section('log', 
         {
             'syslog': 'boolean(default=False)',
+            'logdir': 'path(default=None)',
         })
 
-    if filename is not None:
+    if config['logdir'] is not None:
+        logpath = os.path.join(config['logdir'], filename)
         file_formatter = logging.Formatter(fmt='%(asctime)s [%(name)s] -- %(message)s')
-        log_file = logging.handlers.RotatingFileHandler(filename,
+        log_file = logging.handlers.RotatingFileHandler(logpath,
                         maxBytes=1024*64, backupCount=3)
         log_file.setLevel(logging.DEBUG)
         log_file.setFormatter(file_formatter)
