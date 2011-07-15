@@ -2,20 +2,23 @@ from __future__ import unicode_literals
 
 import signal
 
-#import lockfile
-
 from consys.common import log
 from consys.common import configuration
 from consys.common import daemonise
 
 _log = log.getLogger(__name__)
 
+_config = configuration.register_section(None,
+    {
+        'server-pid-file': 'path(default=/var/run/consys-server.pid)',
+    })
+
 def run():
     try:
         log.init('server.log')
 
         context = daemonise.getContext(
-           #pidfile=lockfile.FileLock('consys-server.run'),
+            pidfile = _config['server-pid-file'],
             signal_map = {
                 signal.SIGUSR1: 'terminate',
                 signal.SIGHUP: configuration.reload,
