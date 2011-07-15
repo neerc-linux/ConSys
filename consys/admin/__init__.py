@@ -11,10 +11,9 @@ from consys.common import configuration
 _log = log.getLogger(__name__)
 
 def run():
-    log.init('admin.log')    
-    
     try:
-        _log.info('Working directory: {0}'.format(configuration.workingdir()))
+        log.init('admin.log')
+
         _log.info('Configuration file: {0}'.format(configuration.filename()))
         _log.info('Initializing ConSys admin...')
         global qtapp
